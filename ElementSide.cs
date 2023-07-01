@@ -1,6 +1,11 @@
 namespace VectorFEM3D;
 
-public class ElementSide
+public enum ElementSide
 {
-    
+    Left,
+    Right,
+    Bottom,
+    Upper,
+    Rear,
+    Front
 }

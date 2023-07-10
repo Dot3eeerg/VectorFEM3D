@@ -79,10 +79,12 @@ public class Grid
         int nodesInRow = _xSteps + 1;
         int nodesInSlice = nodesInRow * (_ySteps + 1);
 
-        int intermediateEdges = _zSteps * nodesInSlice;
-        int edgesInSlice = _xSteps * (1 + _ySteps) + _ySteps * (1 + _xSteps);
+        int zEdges = _zSteps * nodesInSlice;
+        int xEdges = _xSteps;
+        int yEdges = 1 + _xSteps;
+        int edgesInSlice = xEdges * (1 + _ySteps) + yEdges * _ySteps;
 
-        Edges = new Edge3D[edgesInSlice * (_zSteps + 1) + intermediateEdges];
+        Edges = new Edge3D[edgesInSlice * (_zSteps + 1) + zEdges];
 
         double x = _xStart, y = _yStart, z = _zStart;
         double xStep = (_xEnd - _xStart) / sumRazX;
@@ -121,22 +123,55 @@ public class Grid
                     Nodes[i * nodesInSlice + j * nodesInRow + k] = new(Nodes[k].X, Nodes[j * nodesInRow].Y, z);
             }
         }
-        
-        for (int j = 0; j < _zSteps; j++)
-        {
-            for (int i = 0; i < edgesInSlice; i++)
-            {
-                
-            }
-        }
 
         int index = 0;
         
-        for (int k = 0; k < _zSteps * 2; k+=2)
+        for (int j = 0; j < _zSteps + 1; j++)
         {
-            for (int i = 0; i < _ySteps * 2; i+=2)
+            int xLocal = 0;
+            int yLocal = 0;
+            int zLocal = 0;
+
+
+            for (int i = 0; i < nodesInSlice / nodesInRow; i++)
             {
-                for (int j = 0; j < _xSteps * 2; j+=2)
+                for (int k = 0; k < nodesInRow - 1; k++)
+                {
+                    Edges[index++] = new Edge3D(Nodes[xLocal + nodesInSlice * j], Nodes[xLocal + nodesInSlice * j + 1]);
+                    xLocal++;
+                }
+
+                xLocal++;
+
+                if (i != nodesInSlice / nodesInRow - 1)
+                {
+                    for (int k = 0; k < nodesInRow; k++)
+                    {
+                        Edges[index++] = new Edge3D(Nodes[yLocal + nodesInSlice * j],
+                            Nodes[yLocal + nodesInSlice * j + nodesInRow]);
+                        yLocal++;
+                    }
+                }
+            }
+
+            if (j != _zSteps)
+            {
+                for (int k = 0; k < nodesInSlice; k++)
+                {
+                    Edges[index++] = new Edge3D(Nodes[zLocal + nodesInSlice * j],
+                        Nodes[zLocal + nodesInSlice * j + nodesInSlice]);
+                    zLocal++;
+                }
+            }
+        }
+
+        index = 0;
+        
+        for (int k = 0; k < _zSteps; k++)
+        {
+            for (int i = 0; i < _ySteps; i++)
+            {
+                for (int j = 0; j < _xSteps; j++)
                 {
                     Elements[index][0] = j + nodesInRow * i + nodesInSlice * k;
                     Elements[index][1] = j + 1 + nodesInRow * i + nodesInSlice * k;

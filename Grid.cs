@@ -173,35 +173,26 @@ public class Grid
             {
                 for (int j = 0; j < _xSteps; j++)
                 {
-                    Elements[index][0] = j + nodesInRow * i + nodesInSlice * k;
-                    Elements[index][1] = j + 1 + nodesInRow * i + nodesInSlice * k;
-                    Elements[index][2] = j + 2 + nodesInRow * i + nodesInSlice * k;
-                    Elements[index][3] = j + nodesInRow * (i + 1) + nodesInSlice * k;
-                    Elements[index][4] = j + 1 + nodesInRow * (i + 1) + nodesInSlice * k;
-                    Elements[index][5] = j + 2 + nodesInRow * (i + 1) + nodesInSlice * k;
-                    Elements[index][6] = j + nodesInRow * (i + 2) + nodesInSlice * k;
-                    Elements[index][7] = j + 1 + nodesInRow * (i + 2) + nodesInSlice * k;
-                    Elements[index][8] = j + 2 + nodesInRow * (i + 2) + nodesInSlice * k;
+                    Elements[index][0] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i;
+                    Elements[index][1] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * (i + 1);
+                    Elements[index][2] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges;
+                    Elements[index][3] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges + 1;
                     
-                    Elements[index][9] = j + nodesInRow * i + nodesInSlice * (k + 1);
-                    Elements[index][10] = j + 1 + nodesInRow * i + nodesInSlice * (k + 1);
-                    Elements[index][11] = j + 2 + nodesInRow * i + nodesInSlice * (k + 1);
-                    Elements[index][12] = j + nodesInRow * (i + 1) + nodesInSlice * (k + 1);
-                    Elements[index][13] = j + 1 + nodesInRow * (i + 1) + nodesInSlice * (k + 1);
-                    Elements[index][14] = j + 2 + nodesInRow * (i + 1) + nodesInSlice * (k + 1);
-                    Elements[index][15] = j + nodesInRow * (i + 2) + nodesInSlice * (k + 1);
-                    Elements[index][16] = j + 1 + nodesInRow * (i + 2) + nodesInSlice * (k + 1);
-                    Elements[index][17] = j + 2 + nodesInRow * (i + 2) + nodesInSlice * (k + 1);
-                    
-                    Elements[index][18] = j + nodesInRow * i + nodesInSlice * (k + 2);
-                    Elements[index][19] = j + 1 + nodesInRow * i + nodesInSlice * (k + 2);
-                    Elements[index][20] = j + 2 + nodesInRow * i + nodesInSlice * (k + 2);
-                    Elements[index][21] = j + nodesInRow * (i + 1) + nodesInSlice * (k + 2);
-                    Elements[index][22] = j + 1 + nodesInRow * (i + 1) + nodesInSlice * (k + 2);
-                    Elements[index][23] = j + 2 + nodesInRow * (i + 1) + nodesInSlice * (k + 2);
-                    Elements[index][24] = j + nodesInRow * (i + 2) + nodesInSlice * (k + 2);
-                    Elements[index][25] = j + 1 + nodesInRow * (i + 2) + nodesInSlice * (k + 2);
-                    Elements[index++][26] = j + 2 + nodesInRow * (i + 2) + nodesInSlice * (k + 2);
+                    Elements[index][4] =
+                        j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice - _xSteps * i;
+                    Elements[index][5] =
+                        j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice + 1 - _xSteps * i;
+                    Elements[index][6] =
+                        j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice + nodesInRow -
+                        _xSteps * i;
+                    Elements[index][7] =
+                        j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice + 1 +
+                        nodesInRow - _xSteps * i;
+
+                    Elements[index][8] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i;
+                    Elements[index][9] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * (i + 1);
+                    Elements[index][10] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i + xEdges;
+                    Elements[index++][11] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i + xEdges + 1;
                 }
             }
         }

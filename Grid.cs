@@ -16,7 +16,7 @@ public class Grid
     private readonly double _zRaz;
     private readonly int[] _boundaries;
     public Point3D[] Nodes { get; private set; }
-    public Vector3D[] Edges { get; private set; }
+    public Edge3D[] Edges { get; private set; }
     public HashSet<int> DirichletBoundaries { get; private set; } 
     public List<(HashSet<(int, int)>, ElementSide)> NewmanBoundaries { get; private set; } 
     public int[][] Elements { get; private set; }
@@ -65,7 +65,6 @@ public class Grid
     {
         Elements = new int[_xSteps * _ySteps * _zSteps].Select(_ => new int[12]).ToArray();
         Nodes = new Point3D[(_xSteps + 1) * (_ySteps + 1) * (_zSteps + 1)];
-        Edges = new Vector3D[(_xSteps + 1) * (_ySteps + 2) * (_zSteps + 2)];
 
         double sumRazX = 0, sumRazY = 0, sumRazZ = 0;
         for (int i = 0; i < _xSteps; i++)
@@ -79,6 +78,11 @@ public class Grid
 
         int nodesInRow = _xSteps + 1;
         int nodesInSlice = nodesInRow * (_ySteps + 1);
+
+        int intermediateEdges = _zSteps * nodesInSlice;
+        int edgesInSlice = _xSteps * (1 + _ySteps) + _ySteps * (1 + _xSteps);
+
+        Edges = new Edge3D[edgesInSlice * (_zSteps + 1) + intermediateEdges];
 
         double x = _xStart, y = _yStart, z = _zStart;
         double xStep = (_xEnd - _xStart) / sumRazX;
@@ -118,21 +122,16 @@ public class Grid
             }
         }
         
-        int index = 0;
-
-        for (int k = 0; k < _zSteps; k++)
+        for (int j = 0; j < _zSteps; j++)
         {
-            for (int i = 0; i < _ySteps + 1; i++)
+            for (int i = 0; i < edgesInSlice; i++)
             {
-                for (int j = 0; j < _xSteps; j++)
-                {
-                    Edges[index++] = new(Nodes[j + nodesInRow * i + nodesInSlice * k],
-                        Nodes[j + nodesInRow * i + nodesInSlice * k + 1]);
-                }
+                
             }
         }
 
-
+        int index = 0;
+        
         for (int k = 0; k < _zSteps * 2; k+=2)
         {
             for (int i = 0; i < _ySteps * 2; i+=2)

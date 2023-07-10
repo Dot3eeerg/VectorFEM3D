@@ -1,6 +1,6 @@
 namespace VectorFEM3D;
 
-public class Vector3D
+public class Edge3D
 {
     public double X0 { get; set; }
     public double Y0 { get; set; }
@@ -10,7 +10,7 @@ public class Vector3D
     public double Z1 { get; set; }
     public double Length { get; set; }
 
-    public Vector3D(Point3D point0, Point3D point1)
+    public Edge3D(Point3D point0, Point3D point1)
     {
         X0 = point0.X;
         Y0 = point0.Y;

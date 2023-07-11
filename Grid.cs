@@ -249,71 +249,41 @@ public class Grid
                 DirichletBoundaries.Add(Elements[ielem][1]);
                 DirichletBoundaries.Add(Elements[ielem][2]);
                 DirichletBoundaries.Add(Elements[ielem][3]);
-                DirichletBoundaries.Add(Elements[ielem][4]);
-                DirichletBoundaries.Add(Elements[ielem][5]);
-                DirichletBoundaries.Add(Elements[ielem][6]);
-                DirichletBoundaries.Add(Elements[ielem][7]);
-                DirichletBoundaries.Add(Elements[ielem][8]);
                 break;
             
             case ElementSide.Upper:
-                DirichletBoundaries.Add(Elements[ielem][18]);
-                DirichletBoundaries.Add(Elements[ielem][19]);
-                DirichletBoundaries.Add(Elements[ielem][20]);
-                DirichletBoundaries.Add(Elements[ielem][21]);
-                DirichletBoundaries.Add(Elements[ielem][22]);
-                DirichletBoundaries.Add(Elements[ielem][23]);
-                DirichletBoundaries.Add(Elements[ielem][24]);
-                DirichletBoundaries.Add(Elements[ielem][25]);
-                DirichletBoundaries.Add(Elements[ielem][26]);
+                DirichletBoundaries.Add(Elements[ielem][8]);
+                DirichletBoundaries.Add(Elements[ielem][9]);
+                DirichletBoundaries.Add(Elements[ielem][10]);
+                DirichletBoundaries.Add(Elements[ielem][11]);
                 break;
             
             case ElementSide.Left:
-                DirichletBoundaries.Add(Elements[ielem][0]);
-                DirichletBoundaries.Add(Elements[ielem][3]);
-                DirichletBoundaries.Add(Elements[ielem][6]);
-                DirichletBoundaries.Add(Elements[ielem][9]);
-                DirichletBoundaries.Add(Elements[ielem][12]);
-                DirichletBoundaries.Add(Elements[ielem][15]);
-                DirichletBoundaries.Add(Elements[ielem][18]);
-                DirichletBoundaries.Add(Elements[ielem][21]);
-                DirichletBoundaries.Add(Elements[ielem][24]);
+                DirichletBoundaries.Add(Elements[ielem][2]);
+                DirichletBoundaries.Add(Elements[ielem][4]);
+                DirichletBoundaries.Add(Elements[ielem][5]);
+                DirichletBoundaries.Add(Elements[ielem][10]);
                 break;
                 
             case ElementSide.Right:
-                DirichletBoundaries.Add(Elements[ielem][2]);
+                DirichletBoundaries.Add(Elements[ielem][3]);
                 DirichletBoundaries.Add(Elements[ielem][5]);
-                DirichletBoundaries.Add(Elements[ielem][8]);
+                DirichletBoundaries.Add(Elements[ielem][7]);
                 DirichletBoundaries.Add(Elements[ielem][11]);
-                DirichletBoundaries.Add(Elements[ielem][14]);
-                DirichletBoundaries.Add(Elements[ielem][17]);
-                DirichletBoundaries.Add(Elements[ielem][20]);
-                DirichletBoundaries.Add(Elements[ielem][23]);
-                DirichletBoundaries.Add(Elements[ielem][26]);
                 break;
             
             case ElementSide.Front:
                 DirichletBoundaries.Add(Elements[ielem][0]);
-                DirichletBoundaries.Add(Elements[ielem][1]);
-                DirichletBoundaries.Add(Elements[ielem][2]);
-                DirichletBoundaries.Add(Elements[ielem][9]);
-                DirichletBoundaries.Add(Elements[ielem][10]);
-                DirichletBoundaries.Add(Elements[ielem][11]);
-                DirichletBoundaries.Add(Elements[ielem][18]);
-                DirichletBoundaries.Add(Elements[ielem][19]);
-                DirichletBoundaries.Add(Elements[ielem][20]);
+                DirichletBoundaries.Add(Elements[ielem][4]);
+                DirichletBoundaries.Add(Elements[ielem][5]);
+                DirichletBoundaries.Add(Elements[ielem][8]);
                 break;
             
             case ElementSide.Rear:
+                DirichletBoundaries.Add(Elements[ielem][1]);
                 DirichletBoundaries.Add(Elements[ielem][6]);
                 DirichletBoundaries.Add(Elements[ielem][7]);
-                DirichletBoundaries.Add(Elements[ielem][8]);
-                DirichletBoundaries.Add(Elements[ielem][15]);
-                DirichletBoundaries.Add(Elements[ielem][16]);
-                DirichletBoundaries.Add(Elements[ielem][17]);
-                DirichletBoundaries.Add(Elements[ielem][24]);
-                DirichletBoundaries.Add(Elements[ielem][25]);
-                DirichletBoundaries.Add(Elements[ielem][26]);
+                DirichletBoundaries.Add(Elements[ielem][9]);
                 break;
         }
     }

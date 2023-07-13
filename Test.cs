@@ -23,10 +23,10 @@ public class Test1 : Test
     public Test1(Grid grid) : base(grid) { }
     
     public override double U(Point3D point, double t)
-        => point.Y + 2 * point.Z + t;
+        => 1 + point.Y;
 
     public override double F(Point3D point, double t)
-        => 1;
+        => 1 + point.Y;
 
     public override double Theta(Point3D point, double t, ElementSide elementSide)
     {

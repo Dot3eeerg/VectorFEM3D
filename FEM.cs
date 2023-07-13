@@ -12,6 +12,7 @@ public class FEM
     private Test? _test;
     private IBasis3D? _basis;
     private Integration? _integration;
+    private SLAE? _slae;
 
     public FEM(Grid grid, TimeGrid timeGrid)
     {
@@ -26,6 +27,22 @@ public class FEM
     public void SetTest(Test test)
     {
         _test = test;
+    }
+
+    public void SetSolver(SLAE slae)
+    {
+        _slae = slae;
+    }
+
+    public void Compute()
+    {
+        BuildPortrait();
+        
+        AssemblySLAE(0);
+        AccountDirichletBoundaries(0);
+        
+        _slae.SetSLAE(_globalVector, _globalMatrix);
+        _solution = _slae.Solve();
     }
 
     private void AssemblySLAE(int itime)
@@ -142,21 +159,42 @@ public class FEM
 
         _massMatrix = _grid.Sigma * _massMatrix;
     }
+    
+    private void AccountDirichletBoundaries(int itime)
+    {
+        foreach (var node in _grid.DirichletBoundaries)
+        {
+
+            _globalMatrix.Di[node] = 1;
+            _globalVector[node] = 0;
+
+            for (int i = _globalMatrix.Ig[node]; i < _globalMatrix.Ig[node + 1]; i++)
+                _globalMatrix.Ggl[i] = 0;
+
+            for (int col = node + 1; col < _globalMatrix.Size; col++)
+            for (int j = _globalMatrix.Ig[col]; j < _globalMatrix.Ig[col + 1]; j++)
+                if (_globalMatrix.Jg[j] == node)
+                {
+                    _globalMatrix.Ggu[j] = 0;
+                    break;
+                }
+        }
+    }
 
     private void BuildPortrait()
     {
-        HashSet<int>[] list = new HashSet<int>[_grid.Nodes.Length].Select(_ => new HashSet<int>()).ToArray();
+        HashSet<int>[] list = new HashSet<int>[_grid.Edges.Length].Select(_ => new HashSet<int>()).ToArray();
         foreach (var element in _grid.Elements)
-        foreach (var pos in element)
-        foreach (var node in element)
-            if (pos > node)
-                list[pos].Add(node);
+            foreach (var pos in element)
+                foreach (var node in element)
+                    if (pos > node)
+                        list[pos].Add(node);
 
         list = list.Select(childlist => childlist.Order().ToHashSet()).ToArray();
         int count = list.Sum(childlist => childlist.Count);
 
-        _globalMatrix = new(_grid.Nodes.Length, count);
-        _globalVector = new(_grid.Nodes.Length);
+        _globalMatrix = new(_grid.Edges.Length, count);
+        _globalVector = new(_grid.Edges.Length);
         //_layers = new Vector[3].Select(_ => new Vector(_grid.Nodes.Length)).ToArray();
 
         _globalMatrix.Ig[0] = 0;
@@ -167,7 +205,7 @@ public class FEM
         int k = 0;
 
         foreach (var childlist in list)
-        foreach (var value in childlist)
-            _globalMatrix.Jg[k++] = value;
+            foreach (var value in childlist)
+                _globalMatrix.Jg[k++] = value;
     }
 }

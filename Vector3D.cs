@@ -15,4 +15,8 @@ public class Vector3D
 
     public static double operator *(Vector3D vector1, Vector3D vector2)
         => vector1._x * vector2._x + vector1._y * vector2._y + vector1._z * vector2._z;
+
+    public static double DotProductJacob(Vector3D vector1, Vector3D vector2, double hx, double hy, double hz)
+        => vector1._x * vector2._x * hy * hz / hx + vector1._y * vector2._y * hx * hz / hy +
+           vector1._z * vector2._z * hx * hy / hz;
 }

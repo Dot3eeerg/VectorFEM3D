@@ -28,6 +28,78 @@ public class FEM
         _test = test;
     }
 
+    private void AssemblySLAE(int itime)
+    {
+        _globalVector.Fill(0);
+        _globalMatrix.Clear();
+
+        for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
+        {
+            AssemblyLocalElement(ielem, itime);
+            
+            ////////////////////////////////////
+            /// добавить время
+            ////////////////////////////////////
+
+            _stiffnessMatrix += _massMatrix;
+
+            for (int i = 0; i < _basis.Size; i++)
+            {
+                for (int j = 0; j < _basis.Size; j++)
+                {
+                    AddElement(_grid.Elements[ielem][i], _grid.Elements[ielem][j], _stiffnessMatrix[i, j]);
+                }
+            }
+            
+            AssemblyGlobalVector(ielem, 0);
+            
+            _stiffnessMatrix.Clear();
+            _massMatrix.Clear();
+            _localVector.Fill(0);
+        }
+    }
+
+    private void AssemblyGlobalVector(int ielem, int itime)
+    {
+        for (int i = 0; i < _basis.Size; i++)
+        {
+            _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+        }
+    }
+
+    private void AddElement(int i, int j, double value)
+    {
+        if (i == j)
+        {
+            _globalMatrix.Di[i] += value;
+            return;
+        }
+
+        if (i > j)
+        {
+            for (int icol = _globalMatrix.Ig[i]; icol < _globalMatrix.Ig[i + 1]; icol++)
+            {
+                if (_globalMatrix.Jg[icol] == j)
+                {
+                    _globalMatrix.Ggl[icol] += value;
+                    return;
+                }
+            }
+        }
+
+        else
+        {
+            for (int icol = _globalMatrix.Ig[j]; icol < _globalMatrix.Ig[j + 1]; icol++)
+            {
+                if (_globalMatrix.Jg[icol] == i)
+                {
+                    _globalMatrix.Ggu[icol] += value;
+                    return;
+                }
+            }
+        }
+    }
+
     private void AssemblyLocalElement(int ielem, int itime)
     {
         double hx = _grid.Edges[_grid.Elements[ielem][0]].Length;

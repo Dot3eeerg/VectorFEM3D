@@ -237,3 +237,19 @@ public class BCGSTABLUSolver : SLAE
       return result;
    }
 }
+
+public class LUSolver : SLAE
+{
+   public override Vector Solve()
+   {
+      solution = new(vector.Length);
+      Vector.Copy(vector, solution);
+      matrix = matrix.ConvertToProfile();
+
+      LU();
+      ForwardElimination();
+      BackwardSubstitution();
+
+      return solution;
+   }
+}

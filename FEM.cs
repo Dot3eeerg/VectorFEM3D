@@ -144,7 +144,7 @@ public class FEM
                 kek = point =>
                 {
                     Vector3D dPsi1 = _basis.GetDPsi(ik, point);
-                    Vector3D dPsi2 = _basis.GetDPsi(ik, point);
+                    Vector3D dPsi2 = _basis.GetDPsi(jk, point);
 
                     return Vector3D.DotProductJacob(dPsi1, dPsi2, hx, hy, hz);
                 };
@@ -152,7 +152,7 @@ public class FEM
                 _stiffnessMatrix[i, j] = _grid.Lambda * _integration.Gauss3D(kek);
             }
 
-            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, 0);
+            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, 0, i);
         }
 
         _localVector = _massMatrix * _localVector;
@@ -166,7 +166,7 @@ public class FEM
         {
 
             _globalMatrix.Di[node] = 1;
-            _globalVector[node] = 0;
+            _globalVector[node] = _test.UValue(_grid.Edges[node].Point, _grid.Edges[node].GetAxis());
 
             for (int i = _globalMatrix.Ig[node]; i < _globalMatrix.Ig[node + 1]; i++)
                 _globalMatrix.Ggl[i] = 0;

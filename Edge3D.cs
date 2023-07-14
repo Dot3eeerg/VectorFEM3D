@@ -16,4 +16,15 @@ public class Edge3D
 
         Point = new((Point1.X + Point0.X) / 2, (Point1.Y + Point0.Y) / 2, (Point1.Z + Point0.Z) / 2);
     }
+
+    public int GetAxis()
+    {
+        if (Point.X - Point0.X > 1e-14)
+            return 0;
+        
+        if (Point.Y - Point0.Y > 1e-14)
+            return 1;
+
+        return 2;
+    }
 }

@@ -20,8 +20,9 @@ public class Grid
     public HashSet<int> DirichletBoundaries { get; private set; } 
     public List<(HashSet<(int, int)>, ElementSide)> NewmanBoundaries { get; private set; } 
     public int[][] Elements { get; private set; }
-    public double Lambda { get; set; }
+    public double Mu { get; set; }
     public double Sigma { get; set; }
+    public double Epsilon { get; set; }
 
     public Grid(string path)
     {
@@ -47,8 +48,9 @@ public class Grid
             _zRaz = Convert.ToDouble(data[3]);
 
             data = sr.ReadLine()!.Split(" ").ToArray();
-            Lambda = Convert.ToDouble(data[0]);
+            Mu = Convert.ToDouble(data[0]);
             Sigma = Convert.ToDouble(data[1]);
+            Epsilon = Convert.ToDouble(data[1]);
 
             data = sr.ReadLine()!.Split(" ").ToArray();
             _boundaries = new int[6];

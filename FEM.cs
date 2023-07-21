@@ -4,11 +4,13 @@ public class FEM
 {
     private SparseMatrix? _globalMatrix;
     private Vector? _globalVector;
+    private Vector[]? _layers;
     private Vector? _solution;
     private Vector? _localVector;
     private Matrix? _stiffnessMatrix;
     private Matrix? _massMatrix;
     private Grid? _grid;
+    private TimeGrid _timeGrid;
     private Test? _test;
     private IBasis3D? _basis;
     private Integration? _integration;
@@ -17,6 +19,7 @@ public class FEM
     public FEM(Grid grid, TimeGrid timeGrid)
     {
         _grid = grid;
+        _timeGrid = timeGrid;
         _basis = new TriLinearVectorBasis();
         _integration = new Integration(Quadratures.SegmentGaussOrder9());
         _stiffnessMatrix = new(_basis.Size);
@@ -37,14 +40,17 @@ public class FEM
     public void Compute()
     {
         BuildPortrait();
-        
-        AssemblySLAE(0);
-        AccountDirichletBoundaries(0);
-        
-        _slae.SetSLAE(_globalVector, _globalMatrix);
-        _solution = _slae.Solve();
-    }
 
+        for (int itime = 0; itime < _timeGrid.TGrid.Length; itime++)
+        {
+            AssemblySLAE(itime);
+            AccountDirichletBoundaries(itime);
+            
+            _slae.SetSLAE(_globalVector, _globalMatrix);
+            _solution = _slae.Solve();
+        }
+    }
+    
     private void AssemblySLAE(int itime)
     {
         _globalVector.Fill(0);
@@ -68,7 +74,7 @@ public class FEM
                 }
             }
             
-            AssemblyGlobalVector(ielem, 0);
+            AssemblyGlobalVector(ielem);
             
             _stiffnessMatrix.Clear();
             _massMatrix.Clear();
@@ -76,7 +82,7 @@ public class FEM
         }
     }
 
-    private void AssemblyGlobalVector(int ielem, int itime)
+    private void AssemblyGlobalVector(int ielem)
     {
         for (int i = 0; i < _basis.Size; i++)
         {
@@ -149,10 +155,10 @@ public class FEM
                     return Vector3D.DotProductJacob(dPsi1, dPsi2, hx, hy, hz);
                 };
 
-                _stiffnessMatrix[i, j] = _grid.Lambda * _integration.Gauss3D(kek);
+                _stiffnessMatrix[i, j] = 1 / _grid.Mu * _integration.Gauss3D(kek);
             }
 
-            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, 0, i);
+            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, _timeGrid[itime], i);
         }
 
         _localVector = _massMatrix * _localVector;
@@ -166,7 +172,7 @@ public class FEM
         {
 
             _globalMatrix.Di[node] = 1;
-            _globalVector[node] = _test.UValue(_grid.Edges[node].Point, _grid.Edges[node].GetAxis());
+            _globalVector[node] = _test.UValue(_grid.Edges[node].Point, _timeGrid[itime], _grid.Edges[node].GetAxis());
 
             for (int i = _globalMatrix.Ig[node]; i < _globalMatrix.Ig[node + 1]; i++)
                 _globalMatrix.Ggl[i] = 0;
@@ -195,7 +201,7 @@ public class FEM
 
         _globalMatrix = new(_grid.Edges.Length, count);
         _globalVector = new(_grid.Edges.Length);
-        //_layers = new Vector[3].Select(_ => new Vector(_grid.Nodes.Length)).ToArray();
+        _layers = new Vector[3].Select(_ => new Vector(_grid.Nodes.Length)).ToArray();
 
         _globalMatrix.Ig[0] = 0;
 

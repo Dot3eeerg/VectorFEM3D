@@ -48,17 +48,17 @@ public class Test1 : Test
         {
             0 => 1 + point.Y,
             1 => point.Z,
-            2 => 0,
+            2 => t,
             _ => throw new Exception("Can't find UValue type")
         };
 
     protected override double FValue(Point3D point, double t, int i)
         => i switch
         {
-            0 => 1 + point.Y,
-            1 => point.Z,
-            2 => 0,
-            _ => throw new Exception("Can't find UValue type")
+            0 => 0,
+            1 => 0,
+            2 => 1,
+            _ => throw new Exception("Can't find FValue type")
         };
 
     public override double Theta(Point3D point, double t, ElementSide elementSide)

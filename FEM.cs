@@ -40,21 +40,32 @@ public class FEM
     public void Compute()
     {
         BuildPortrait();
+        PrepareLayers();
 
-        for (int itime = 0; itime < _timeGrid.TGrid.Length; itime++)
+        for (int itime = 3; itime < _timeGrid.TGrid.Length; itime++)
         {
             AssemblySLAE(itime);
             AccountDirichletBoundaries(itime);
             
             _slae.SetSLAE(_globalVector, _globalMatrix);
             _solution = _slae.Solve();
+            
+            Vector.Copy(_layers[1], _layers[0]);
+            Vector.Copy(_layers[2], _layers[1]);
+            Vector.Copy(_solution, _layers[2]);
+            
+            PrintError(itime);
         }
     }
-    
+
     private void AssemblySLAE(int itime)
     {
         _globalVector.Fill(0);
         _globalMatrix.Clear();
+
+        double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
+        double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
+        double t03 = _timeGrid[itime] - _timeGrid[itime - 3];
 
         for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
         {
@@ -64,7 +75,9 @@ public class FEM
             /// добавить время
             ////////////////////////////////////
 
-            _stiffnessMatrix += _massMatrix;
+            _stiffnessMatrix += 
+                (_grid.Sigma * (t01 * t02 + t01 * t03) / (t01 * t02 * t03) +
+                 (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t01 + t02 + t03)) / (t01 * t02 * t03)) * _massMatrix;
 
             for (int i = 0; i < _basis.Size; i++)
             {
@@ -74,7 +87,7 @@ public class FEM
                 }
             }
             
-            AssemblyGlobalVector(ielem);
+            AssemblyGlobalVector(ielem, itime);
             
             _stiffnessMatrix.Clear();
             _massMatrix.Clear();
@@ -82,10 +95,35 @@ public class FEM
         }
     }
 
-    private void AssemblyGlobalVector(int ielem)
+    private void AssemblyGlobalVector(int ielem, int itime)
     {
+        double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
+        double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
+        double t03 = _timeGrid[itime] - _timeGrid[itime - 3];
+        double t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
+        double t13 = _timeGrid[itime - 1] - _timeGrid[itime - 3];
+        double t23 = _timeGrid[itime - 2] - _timeGrid[itime - 3];
+
+        double[] qj1 = new double[_basis.Size];
+        double[] qj2 = new double[_basis.Size];
+        double[] qj3 = new double[_basis.Size];
+
         for (int i = 0; i < _basis.Size; i++)
         {
+            for (int j = 0; j < _basis.Size; j++)
+            {
+                qj3[i] += _massMatrix[i, j] * _layers[2][_grid.Elements[ielem][i]];
+                qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][i]];
+                qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][i]];
+            }
+        }
+        
+        for (int i = 0; i < _basis.Size; i++)
+        {
+            _localVector[i] += (_grid.Sigma * t01 * t02 + 2 * _grid.Epsilon * (t01 + t02)) / (t03 * t13 * t23) * qj3[i];
+            _localVector[i] += (_grid.Sigma * t01 * t03 + 2 * _grid.Epsilon * (t01 + t03)) / (t02 * t12 * (-t23)) * qj2[i];
+            _localVector[i] += (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t02 + t03)) / (t01 * t12 * t13) * qj1[i];
+            
             _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
         }
     }
@@ -162,8 +200,6 @@ public class FEM
         }
 
         _localVector = _massMatrix * _localVector;
-
-        _massMatrix = _grid.Sigma * _massMatrix;
     }
     
     private void AccountDirichletBoundaries(int itime)
@@ -191,17 +227,17 @@ public class FEM
     {
         HashSet<int>[] list = new HashSet<int>[_grid.Edges.Length].Select(_ => new HashSet<int>()).ToArray();
         foreach (var element in _grid.Elements)
-            foreach (var pos in element)
-                foreach (var node in element)
-                    if (pos > node)
-                        list[pos].Add(node);
+        foreach (var pos in element)
+        foreach (var node in element)
+            if (pos > node)
+                list[pos].Add(node);
 
         list = list.Select(childlist => childlist.Order().ToHashSet()).ToArray();
         int count = list.Sum(childlist => childlist.Count);
 
         _globalMatrix = new(_grid.Edges.Length, count);
         _globalVector = new(_grid.Edges.Length);
-        _layers = new Vector[3].Select(_ => new Vector(_grid.Nodes.Length)).ToArray();
+        _layers = new Vector[3].Select(_ => new Vector(_grid.Edges.Length)).ToArray();
 
         _globalMatrix.Ig[0] = 0;
 
@@ -211,7 +247,28 @@ public class FEM
         int k = 0;
 
         foreach (var childlist in list)
-            foreach (var value in childlist)
-                _globalMatrix.Jg[k++] = value;
+        foreach (var value in childlist)
+            _globalMatrix.Jg[k++] = value;
+    }
+    
+    private void PrepareLayers()
+    {
+        for (int i = 0; i < _grid.Edges.Length; i++)
+        {
+            _layers[0][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis());
+            _layers[1][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[1], _grid.Edges[i].GetAxis());
+            _layers[2][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[2], _grid.Edges[i].GetAxis());
+        }
+    }
+
+    private void PrintError(int itime)
+    {
+        double error = 0;
+        for (int i = 0; i < _grid.Edges.Length; i++)
+        {
+            error += Math.Pow(
+                _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
+        }
+        Console.WriteLine($"Layer error {itime} = {Math.Sqrt(error / _grid.Edges.Length)}");
     }
 }

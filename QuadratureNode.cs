@@ -1,4 +1,6 @@
-﻿namespace VectorFEM3D;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace VectorFEM3D;
 
 public class QuadratureNode
 {
@@ -14,6 +16,8 @@ public class QuadratureNode
 
 public static class Quadratures
 {
+    [SuppressMessage("ReSharper.DPA", "DPA0002: Excessive memory allocations in SOH", MessageId = "type: VectorFEM3D.QuadratureNode; size: 575MB")]
+    [SuppressMessage("ReSharper.DPA", "DPA0002: Excessive memory allocations in SOH", MessageId = "type: System.Double[]; size: 229MB")]
     public static IEnumerable<QuadratureNode> SegmentGaussOrder9()
     {
         const int n = 5;

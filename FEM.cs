@@ -121,8 +121,8 @@ public class FEM
         
         for (int i = 0; i < _basis.Size; i++)
         {
-            _localVector[i] += (_grid.Sigma * t02 + 2 * _grid.Epsilon) / (t01 * t12) * qj3[i];
-            _localVector[i] += (_grid.Sigma * t01 + 2 * _grid.Epsilon) / (t02 * t12) * qj2[i];
+            _localVector[i] += (_grid.Sigma * t02 + 2 * _grid.Epsilon) / (t01 * t12) * qj2[i];
+            _localVector[i] -= (_grid.Sigma * t01 + 2 * _grid.Epsilon) / (t02 * t12) * qj3[i];
             
             //_localVector[i] += (_grid.Sigma * t01 * t02 + 2 * _grid.Epsilon * (t01 + t02)) / (t03 * t13 * t23) * qj3[i];
             //_localVector[i] += (_grid.Sigma * t01 * t03 + 2 * _grid.Epsilon * (t01 + t03)) / (t02 * t12 * (-t23)) * qj2[i];

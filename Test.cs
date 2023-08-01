@@ -46,7 +46,7 @@ public class Test1 : Test
     public override double UValue(Point3D point, double t, int i)
         => i switch
         {
-            0 => 1 + point.Y * point.Y,
+            0 => 1 + point.Y,
             1 => point.Z,
             2 => t * t,
             _ => throw new Exception("Can't find UValue type")
@@ -55,9 +55,9 @@ public class Test1 : Test
     protected override double FValue(Point3D point, double t, int i)
         => i switch
         {
-            0 => -2,
+            0 => 0,
             1 => 0,
-            2 => 2 * t,
+            2 => 2 * t + 2,
             _ => throw new Exception("Can't find FValue type")
         };
 

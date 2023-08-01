@@ -9,3 +9,9 @@ public enum ElementSide
     Rear,
     Front
 }
+
+public enum Scheme
+{
+    Three_layer_Implicit,
+    Four_layer_Implicit
+}

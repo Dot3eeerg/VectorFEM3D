@@ -15,6 +15,7 @@ public class FEM
     private IBasis3D? _basis;
     private Integration? _integration;
     private SLAE? _slae;
+    private Scheme _scheme;
 
     public FEM(Grid grid, TimeGrid timeGrid)
     {
@@ -37,23 +38,55 @@ public class FEM
         _slae = slae;
     }
 
+    public void SetScheme(Scheme scheme)
+    {
+        _scheme = scheme;
+    }
+
     public void Compute()
     {
         BuildPortrait();
         PrepareLayers();
 
-        for (int itime = 2; itime < _timeGrid.TGrid.Length; itime++)
+        int itime = 0;
+        
+        switch (_scheme)
+        {
+            case Scheme.Three_layer_Implicit:
+                itime = 2;
+                break;
+            
+            case Scheme.Four_layer_Implicit:
+                itime = 3;
+                break;
+        }
+
+        for ( ; itime < _timeGrid.TGrid.Length; itime++)
         {
             AssemblySLAE(itime);
             AccountDirichletBoundaries(itime);
             
             _slae.SetSLAE(_globalVector, _globalMatrix);
             _solution = _slae.Solve();
+
+            switch (_scheme)
+            {
+                case Scheme.Three_layer_Implicit:
+                    Vector.Copy(_layers[1], _layers[0]);
+                    Vector.Copy(_solution, _layers[1]);
+                    break;
+                
+                case Scheme.Four_layer_Implicit:
+                    Vector.Copy(_layers[1], _layers[0]);
+                    Vector.Copy(_layers[2], _layers[1]);
+                    Vector.Copy(_solution, _layers[2]);
+                    break;
+            }
             
-            Vector.Copy(_layers[1], _layers[0]);
-            Vector.Copy(_solution, _layers[1]);
-            //Vector.Copy(_layers[2], _layers[1]);
-            //Vector.Copy(_solution, _layers[2]);
+            //Vector.Copy(_layers[1], _layers[0]);
+            //Vector.Copy(_solution, _layers[1]);
+            ////Vector.Copy(_layers[2], _layers[1]);
+            ////Vector.Copy(_solution, _layers[2]);
             
             PrintError(itime);
         }
@@ -64,21 +97,11 @@ public class FEM
         _globalVector.Fill(0);
         _globalMatrix.Clear();
 
-        double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
-        double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
-        //double t03 = _timeGrid[itime] - _timeGrid[itime - 3];
-
         for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
         {
             AssemblyLocalElement(ielem, itime);
             
-            //_stiffnessMatrix += 
-            //    (_grid.Sigma * (t01 * t02 + t01 * t03) / (t01 * t02 * t03) +
-            //     (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t01 + t02 + t03)) / (t01 * t02 * t03)) * _massMatrix;
-
-            _stiffnessMatrix += (_grid.Sigma * (t01 + t02) + 2 * _grid.Epsilon) / (t01 * t02) * _massMatrix;
-
-            //_stiffnessMatrix += _massMatrix;
+            _stiffnessMatrix += SchemeUsage(itime, _scheme, 0) * _massMatrix;
 
             for (int i = 0; i < _basis.Size; i++)
             {
@@ -98,37 +121,55 @@ public class FEM
 
     private void AssemblyGlobalVector(int ielem, int itime)
     {
-        double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
-        double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
-        //double t03 = _timeGrid[itime] - _timeGrid[itime - 3];
-        double t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
-        //double t13 = _timeGrid[itime - 1] - _timeGrid[itime - 3];
-        //double t23 = _timeGrid[itime - 2] - _timeGrid[itime - 3];
-
-        double[] qj1 = new double[_basis.Size];
-        double[] qj2 = new double[_basis.Size];
         double[] qj3 = new double[_basis.Size];
-
-        for (int i = 0; i < _basis.Size; i++)
-        {
-            for (int j = 0; j < _basis.Size; j++)
-            {
-                //qj1[i] += _massMatrix[i, j] * _layers[2][_grid.Elements[ielem][i]];
-                qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][i]];
-                qj3[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][i]];
-            }
-        }
+        double[] qj2 = new double[_basis.Size];
+        double[] qj1 = new double[_basis.Size];
         
-        for (int i = 0; i < _basis.Size; i++)
+        switch (_scheme)
         {
-            _localVector[i] += (_grid.Sigma * t02 + 2 * _grid.Epsilon) / (t01 * t12) * qj2[i];
-            _localVector[i] -= (_grid.Sigma * t01 + 2 * _grid.Epsilon) / (t02 * t12) * qj3[i];
+            case Scheme.Three_layer_Implicit:
+
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    for (int j = 0; j < _basis.Size; j++)
+                    {
+                        qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][i]];
+                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][i]];
+                    }
+                }
+                
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    _localVector[i] += SchemeUsage(itime, _scheme, 1) * qj2[i];
+                    _localVector[i] += SchemeUsage(itime, _scheme, 2) * qj1[i];
+                    
+                    _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+                }
+                
+                break;
             
-            //_localVector[i] += (_grid.Sigma * t01 * t02 + 2 * _grid.Epsilon * (t01 + t02)) / (t03 * t13 * t23) * qj3[i];
-            //_localVector[i] += (_grid.Sigma * t01 * t03 + 2 * _grid.Epsilon * (t01 + t03)) / (t02 * t12 * (-t23)) * qj2[i];
-            //_localVector[i] += (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t02 + t03)) / (t01 * t12 * t13) * qj1[i];
-            
-            _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+            case Scheme.Four_layer_Implicit:
+
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    for (int j = 0; j < _basis.Size; j++)
+                    {
+                        qj3[i] += _massMatrix[i, j] * _layers[2][_grid.Elements[ielem][i]];
+                        qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][i]];
+                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][i]];
+                    }
+                }
+                
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    _localVector[i] += SchemeUsage(itime, _scheme, 1) * qj3[i];
+                    _localVector[i] += SchemeUsage(itime, _scheme, 2) * qj2[i];
+                    _localVector[i] += SchemeUsage(itime, _scheme, 3) * qj1[i];
+                    
+                    _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+                }
+                
+                break;
         }
     }
 
@@ -225,6 +266,61 @@ public class FEM
                         break;
                     }
         }
+    }
+
+    private double SchemeUsage(int itime, Scheme scheme, int i)
+    {
+       double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
+       double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
+       double t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
+                
+        switch (scheme)
+        {
+            case Scheme.Three_layer_Implicit:
+                switch (i)
+                {
+                    case 0:
+                        return (_grid.Sigma * (t01 + t02) + 2 * _grid.Epsilon) / (t01 * t02);
+                    
+                    case 1:
+                        return (_grid.Sigma * t02 + 2 * _grid.Epsilon) / (t01 * t12);
+                    
+                    case 2:
+                        return -(_grid.Sigma * t01 + 2 * _grid.Epsilon) / (t02 * t12);
+                    
+                }
+
+                break;
+            
+            case Scheme.Four_layer_Implicit:
+                double t03 = _timeGrid[itime] - _timeGrid[itime - 3];
+                double t13 = _timeGrid[itime - 1] - _timeGrid[itime - 3];
+                double t23 = _timeGrid[itime - 2] - _timeGrid[itime - 3];
+
+                switch (i)
+                {
+                    case 0:
+                        return (_grid.Sigma * (t01 * t02 + t01 * t03 + t02 * t03) +
+                                2 * _grid.Epsilon * (t01 + t02 + t03)) / (t01 * t02 * t03);
+                        //return _grid.Sigma * (1 / t03 + 1 / t02 + 1 / t01); 
+                    
+                    case 1:
+                        return (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t02 + t03)) / (t01 * t12 * t13);
+                    
+                    case 2:
+                        return -(_grid.Sigma * t01 * t03 + 2 * _grid.Epsilon * (t01 + t03)) / (t02 * t12 * t23);
+                    
+                    case 3:
+                        return (_grid.Sigma * t01 * t02 + 2 * _grid.Epsilon * (t01 + t02)) / (t03 * t13 * t23);
+                }
+
+                return 0;
+            
+            default:
+                throw new Exception("Undefined scheme");
+        }
+
+        throw new Exception("SchemeUsage can't return a value");
     }
 
     private void BuildPortrait()

@@ -19,10 +19,10 @@ public class Edge3D
 
     public int GetAxis()
     {
-        if (Point.X - Point0.X > 1e-15)
+        if (Point.X - Point0.X > 1e-14)
             return 0;
         
-        if (Point.Y - Point0.Y > 1e-15)
+        if (Point.Y - Point0.Y > 1e-14)
             return 1;
 
         return 2;

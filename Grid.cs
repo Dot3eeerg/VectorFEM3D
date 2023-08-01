@@ -50,7 +50,7 @@ public class Grid
             data = sr.ReadLine()!.Split(" ").ToArray();
             Mu = Convert.ToDouble(data[0]);
             Sigma = Convert.ToDouble(data[1]);
-            Epsilon = Convert.ToDouble(data[1]);
+            Epsilon = Convert.ToDouble(data[2]);
 
             data = sr.ReadLine()!.Split(" ").ToArray();
             _boundaries = new int[6];
@@ -263,7 +263,7 @@ public class Grid
             case ElementSide.Left:
                 DirichletBoundaries.Add(Elements[ielem][2]);
                 DirichletBoundaries.Add(Elements[ielem][4]);
-                DirichletBoundaries.Add(Elements[ielem][5]);
+                DirichletBoundaries.Add(Elements[ielem][6]);
                 DirichletBoundaries.Add(Elements[ielem][10]);
                 break;
                 

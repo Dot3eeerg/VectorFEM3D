@@ -83,11 +83,6 @@ public class FEM
                     break;
             }
             
-            //Vector.Copy(_layers[1], _layers[0]);
-            //Vector.Copy(_solution, _layers[1]);
-            ////Vector.Copy(_layers[2], _layers[1]);
-            ////Vector.Copy(_solution, _layers[2]);
-            
             PrintError(itime);
         }
     }
@@ -302,7 +297,6 @@ public class FEM
                     case 0:
                         return (_grid.Sigma * (t01 * t02 + t01 * t03 + t02 * t03) +
                                 2 * _grid.Epsilon * (t01 + t02 + t03)) / (t01 * t02 * t03);
-                        //return _grid.Sigma * (1 / t03 + 1 / t02 + 1 / t01); 
                     
                     case 1:
                         return (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t02 + t03)) / (t01 * t12 * t13);
@@ -353,11 +347,26 @@ public class FEM
     
     private void PrepareLayers()
     {
-        for (int i = 0; i < _grid.Edges.Length; i++)
+        switch (_scheme)
         {
-            _layers[0][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis());
-            _layers[1][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[1], _grid.Edges[i].GetAxis());
-            //_layers[2][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[2], _grid.Edges[i].GetAxis());
+            case Scheme.Three_layer_Implicit:
+                for (int i = 0; i < _grid.Edges.Length; i++)
+                {
+                    _layers[0][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis());
+                    _layers[1][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[1], _grid.Edges[i].GetAxis());
+                }
+                
+                break;
+            
+            case Scheme.Four_layer_Implicit:
+                for (int i = 0; i < _grid.Edges.Length; i++)
+                {
+                    _layers[0][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis());
+                    _layers[1][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[1], _grid.Edges[i].GetAxis());
+                    _layers[2][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[2], _grid.Edges[i].GetAxis());
+                }
+                
+                break;
         }
     }
 

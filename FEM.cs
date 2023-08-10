@@ -149,9 +149,9 @@ public class FEM
                 {
                     for (int j = 0; j < _basis.Size; j++)
                     {
-                        qj3[i] += _massMatrix[i, j] * _layers[2][_grid.Elements[ielem][i]];
-                        qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][i]];
-                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][i]];
+                        qj3[i] += _massMatrix[i, j] * _layers[2][_grid.Elements[ielem][j]];
+                        qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][j]];
+                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
                     }
                 }
                 

@@ -15,6 +15,13 @@ public class Grid
     private readonly int _zSteps;
     private readonly double _zRaz;
     private readonly int[] _boundaries;
+
+    private readonly double[] _xZones;
+    private readonly double[] _yZones;
+    private readonly double[] _zZones;
+    private readonly int[][] _zones;
+    private readonly double[] _sigmaValues;
+    
     public Point3D[] Nodes { get; private set; }
     public Edge3D[] Edges { get; private set; }
     public HashSet<int> DirichletBoundaries { get; private set; } 
@@ -34,6 +41,8 @@ public class Grid
             _xEnd = Convert.ToDouble(data[1]);
             _xSteps = Convert.ToInt32(data[2]);
             _xRaz = Convert.ToDouble(data[3]);
+
+            _xZones = sr.ReadLine()!.Split(" ").Select(x => Convert.ToDouble(x)).ToArray();
             
             data = sr.ReadLine()!.Split(" ").ToArray();
             _yStart = Convert.ToDouble(data[0]);
@@ -41,16 +50,15 @@ public class Grid
             _ySteps = Convert.ToInt32(data[2]);
             _yRaz = Convert.ToDouble(data[3]);
             
+            _yZones = sr.ReadLine()!.Split(" ").Select(x => Convert.ToDouble(x)).ToArray();
+            
             data = sr.ReadLine()!.Split(" ").ToArray();
             _zStart = Convert.ToDouble(data[0]);
             _zEnd = Convert.ToDouble(data[1]);
             _zSteps = Convert.ToInt32(data[2]);
             _zRaz = Convert.ToDouble(data[3]);
-
-            data = sr.ReadLine()!.Split(" ").ToArray();
-            Mu = Convert.ToDouble(data[0]);
-            Sigma = Convert.ToDouble(data[1]);
-            Epsilon = Convert.ToDouble(data[2]);
+            
+            _zZones = sr.ReadLine()!.Split(" ").Select(x => Convert.ToDouble(x)).ToArray();
 
             data = sr.ReadLine()!.Split(" ").ToArray();
             _boundaries = new int[6];
@@ -60,6 +68,27 @@ public class Grid
             _boundaries[3] = Convert.ToInt32(data[3]);
             _boundaries[4] = Convert.ToInt32(data[4]);
             _boundaries[5] = Convert.ToInt32(data[5]);
+            
+            data = sr.ReadLine()!.Split(" ").ToArray();
+            Mu = Convert.ToDouble(data[0]);
+            //Sigma = Convert.ToDouble(data[1]);
+            Epsilon = Convert.ToDouble(data[1]);
+
+            int kek = Convert.ToInt32(sr.ReadLine());
+            _zones = new int[kek].Select(_ => new int[6]).ToArray();
+            _sigmaValues = new double[kek];
+
+            for (int i = 0; i < kek; i++)
+            {
+                data = sr.ReadLine()!.Split(" ").ToArray();
+                _sigmaValues[i] = Convert.ToDouble(data[0]);
+                _zones[i][0] = Convert.ToInt32(data[1]);
+                _zones[i][1] = Convert.ToInt32(data[2]);
+                _zones[i][2] = Convert.ToInt32(data[3]);
+                _zones[i][3] = Convert.ToInt32(data[4]);
+                _zones[i][4] = Convert.ToInt32(data[5]);
+                _zones[i][5] = Convert.ToInt32(data[6]);
+            }
         }
     }
 
@@ -198,6 +227,20 @@ public class Grid
                 }
             }
         }
+    }
+
+    public double GetSigma(Point3D point)
+    {
+        for (int i = 0; i < _zones.Length; i++)
+        {
+            if (point.X <= _xZones[_zones[i][1]] && point.Y <= _yZones[_zones[i][3]] && point.Z <= _zZones[_zones[i][5]] &&
+                point.X > _xZones[_zones[i][0]] && point.Y > _yZones[_zones[i][2]] && point.Z > _zZones[_zones[i][4]])
+            {
+                return _sigmaValues[i];
+            }
+        }
+
+        throw new Exception("Can't find eligible zone for sigma");
     }
 
     public void AccountBoundaryConditions()

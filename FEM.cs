@@ -96,7 +96,7 @@ public class FEM
         {
             AssemblyLocalElement(ielem, itime);
             
-            _stiffnessMatrix += SchemeUsage(itime, _scheme, 0) * _massMatrix;
+            _stiffnessMatrix += SchemeUsage(ielem, itime, _scheme, 0) * _massMatrix;
 
             for (int i = 0; i < _basis.Size; i++)
             {
@@ -135,8 +135,8 @@ public class FEM
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(itime, _scheme, 1) * qj2[i];
-                    _localVector[i] += SchemeUsage(itime, _scheme, 2) * qj1[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 1) * qj2[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 2) * qj1[i];
                     
                     _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
                 }
@@ -157,9 +157,9 @@ public class FEM
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(itime, _scheme, 1) * qj3[i];
-                    _localVector[i] += SchemeUsage(itime, _scheme, 2) * qj2[i];
-                    _localVector[i] += SchemeUsage(itime, _scheme, 3) * qj1[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 1) * qj3[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 2) * qj2[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 3) * qj1[i];
                     
                     _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
                 }
@@ -236,7 +236,10 @@ public class FEM
                 _stiffnessMatrix[i, j] += 1 / _grid.Mu * _integration.Gauss3D(kek);
             }
 
-            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, _timeGrid[itime], i);
+            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, _timeGrid[itime], i, _grid.GetSigma(
+                new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                    _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                    _grid.Edges[_grid.Elements[ielem][11]].Point.Z)));
         }
 
         _localVector = _massMatrix * _localVector;
@@ -263,7 +266,7 @@ public class FEM
         }
     }
 
-    private double SchemeUsage(int itime, Scheme scheme, int i)
+    private double SchemeUsage(int ielem, int itime, Scheme scheme, int i)
     {
        double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
        double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
@@ -275,13 +278,20 @@ public class FEM
                 switch (i)
                 {
                     case 0:
-                        return (_grid.Sigma * (t01 + t02) + 2 * _grid.Epsilon) / (t01 * t02);
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                                   _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                                   _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) * (t01 + t02) + 2 * _grid.Epsilon) /
+                               (t01 * t02);
                     
                     case 1:
-                        return (_grid.Sigma * t02 + 2 * _grid.Epsilon) / (t01 * t12);
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                            _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                            _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) * t02 + 2 * _grid.Epsilon) / (t01 * t12);
                     
                     case 2:
-                        return -(_grid.Sigma * t01 + 2 * _grid.Epsilon) / (t02 * t12);
+                        return -(_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                            _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                            _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) * t01 + 2 * _grid.Epsilon) / (t02 * t12);
                     
                 }
 
@@ -295,17 +305,29 @@ public class FEM
                 switch (i)
                 {
                     case 0:
-                        return (_grid.Sigma * (t01 * t02 + t01 * t03 + t02 * t03) +
-                                2 * _grid.Epsilon * (t01 + t02 + t03)) / (t01 * t02 * t03);
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                                       _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                                       _grid.Edges[_grid.Elements[ielem][11]].Point.Z))
+                                   * (t01 * t02 + t01 * t03 + t02 * t03) + 2 * _grid.Epsilon * (t01 + t02 + t03)) /
+                               (t01 * t02 * t03);
                     
                     case 1:
-                        return (_grid.Sigma * t02 * t03 + 2 * _grid.Epsilon * (t02 + t03)) / (t01 * t12 * t13);
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                                    _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                                    _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) * t02 * t03 +
+                                2 * _grid.Epsilon * (t02 + t03)) / (t01 * t12 * t13);
                     
                     case 2:
-                        return -(_grid.Sigma * t01 * t03 + 2 * _grid.Epsilon * (t01 + t03)) / (t02 * t12 * t23);
+                        return -(_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                                     _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                                     _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) * t01 * t03 +
+                                 2 * _grid.Epsilon * (t01 + t03)) / (t02 * t12 * t23);
                     
                     case 3:
-                        return (_grid.Sigma * t01 * t02 + 2 * _grid.Epsilon * (t01 + t02)) / (t03 * t13 * t23);
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                                    _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                                    _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) * t01 * t02 +
+                                2 * _grid.Epsilon * (t01 + t02)) / (t03 * t13 * t23);
                 }
 
                 return 0;

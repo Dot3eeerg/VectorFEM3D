@@ -212,13 +212,17 @@ public class FEM
             for (int j = 0; j < _basis.Size; j++)
             {
                 Func<Point3D, double> kek;
+                Vector3D psi1 = new(0, 0, 0);
+                Vector3D psi2 = new(0, 0, 0);
+                Vector3D dPsi1 = new(0, 0, 0);
+                Vector3D dPsi2 = new(0, 0, 0);
 
                 int ik = i;
                 int jk = j;
                 kek = point =>
                 {
-                    Vector3D psi1 = _basis.GetPsi(ik, point);
-                    Vector3D psi2 = _basis.GetPsi(jk, point);
+                    psi1.Copy(_basis.GetPsi(ik, point));
+                    psi2.Copy(_basis.GetPsi(jk, point));
 
                     return psi1 * psi2;
                 };
@@ -227,8 +231,8 @@ public class FEM
 
                 kek = point =>
                 {
-                    Vector3D dPsi1 = _basis.GetDPsi(ik, point);
-                    Vector3D dPsi2 = _basis.GetDPsi(jk, point);
+                    dPsi1.Copy(_basis.GetDPsi(ik, point));
+                    dPsi2.Copy(_basis.GetDPsi(jk, point));
 
                     return Vector3D.DotProductJacob(dPsi1, dPsi2, hx, hy, hz);
                 };

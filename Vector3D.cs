@@ -1,16 +1,34 @@
-﻿namespace VectorFEM3D;
+﻿using System.Data;
+
+namespace VectorFEM3D;
 
 public class Vector3D
 {
-    private readonly double _x;
-    private readonly double _y;
-    private readonly double _z;
+    private double _x;
+    private double _y;
+    private double _z;
 
     public Vector3D(double x, double y, double z)
     {
         _x = x;
         _y = y;
         _z = z;
+    }
+
+    public Vector3D UpdateVector(double x, double y, double z)
+    {
+        _x = x;
+        _y = y;
+        _z = z;
+        return this;
+    }
+
+    public Vector3D Copy(Vector3D source)
+    {
+        _x = source._x;
+        _y = source._y;
+        _z = source._z;
+        return this;
     }
 
     public static double operator *(Vector3D vector1, Vector3D vector2)

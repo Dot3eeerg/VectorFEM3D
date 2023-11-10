@@ -2,28 +2,32 @@
 
 public class Integration
 {
-    private readonly IEnumerable<QuadratureNode> _quadratures;
+    private readonly SegmentGaussOrder9 _quadratures;
 
-    public Integration(IEnumerable<QuadratureNode> quadratures) => _quadratures = quadratures;
+    public Integration(SegmentGaussOrder9 quadratures)
+    {
+        _quadratures = quadratures;
+    }
 
     public double Gauss3D(Func<Point3D, double> psi)
     {
         double result = 0;
         Point3D point = new(0, 0, 0);
 
-        foreach (var qi in _quadratures)
+        for (int i = 0; i < _quadratures.Size; i++)
         {
-            point.X = (qi.Node + 1) / 2.0;
+            point.X = (_quadratures.GetPoint(i) + 1) / 2.0;
 
-            foreach (var qj in _quadratures)
+            for (int j = 0; j < _quadratures.Size; j++)
             {
-                point.Y = (qj.Node + 1) / 2.0;
+                point.Y = (_quadratures.GetPoint(j) + 1) / 2.0;
 
-                foreach (var qk in _quadratures)
+                for (int k = 0; k < _quadratures.Size; k++)
                 {
-                    point.Z = (qk.Node + 1) / 2.0;
+                    point.Z = (_quadratures.GetPoint(k) + 1) / 2.0;
 
-                    result += psi(point) * qi.Weight * qj.Weight * qk.Weight;
+                    result += psi(point) * _quadratures.GetWeight(i) * _quadratures.GetWeight(j) *
+                              _quadratures.GetWeight(k);
                 }
             }
         }

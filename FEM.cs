@@ -22,7 +22,7 @@ public class FEM
         _grid = grid;
         _timeGrid = timeGrid;
         _basis = new TriLinearVectorBasis();
-        _integration = new Integration(Quadratures.SegmentGaussOrder9());
+        _integration = new Integration(new SegmentGaussOrder9());
         _stiffnessMatrix = new(_basis.Size);
         _massMatrix = new(_basis.Size);
         _localVector = new(_basis.Size);

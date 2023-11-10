@@ -1,44 +1,37 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿namespace VectorFEM3D;
 
-namespace VectorFEM3D;
-
-public class QuadratureNode
+public interface IQuadrature
 {
-    public double Node { get; }
-    public double Weight { get; }
-
-    public QuadratureNode(double node, double weight)
-    {
-        Node = node;
-        Weight = weight;
-    }
+    int Size { get; }
+    double GetPoint(int number);
+    double GetWeight(int number);
 }
 
-public static class Quadratures
+public readonly record struct SegmentGaussOrder9 : IQuadrature
 {
-    public static IEnumerable<QuadratureNode> SegmentGaussOrder9()
-    {
-        const int n = 5;
-        
-        double[] points =
-        {
-            0.0,
-            1.0 / 3.0 * Math.Sqrt(5 - 2 * Math.Sqrt(10.0 / 7.0)),
-            -1.0 / 3.0 * Math.Sqrt(5 - 2 * Math.Sqrt(10.0 / 7.0)),
-            1.0 / 3.0 * Math.Sqrt(5 + 2 * Math.Sqrt(10.0 / 7.0)),
-            -1.0 / 3.0 * Math.Sqrt(5 + 2 * Math.Sqrt(10.0 / 7.0))
-        };
+    public int Size => 5;
 
-        double[] weights =
-        {
-            128.0 / 225.0,
-            (322.0 + 13.0 * Math.Sqrt(70.0)) / 900.0,
-            (322.0 + 13.0 * Math.Sqrt(70.0)) / 900.0,
-            (322.0 - 13.0 * Math.Sqrt(70.0)) / 900.0,
-            (322.0 - 13.0 * Math.Sqrt(70.0)) / 900.0
-        };
+    public SegmentGaussOrder9() { }
 
-        for (int i = 0; i < n; i++)
-            yield return new(points[i], weights[i]);
-    }
+    public double GetPoint(int number)
+        => number switch
+        {
+            0 => 0.0,
+            1 => 1.0 / 3.0 * Math.Sqrt(5 - 2 * Math.Sqrt(10.0 / 7.0)),
+            2 => -1.0 / 3.0 * Math.Sqrt(5 - 2 * Math.Sqrt(10.0 / 7.0)),
+            3 => 1.0 / 3.0 * Math.Sqrt(5 + 2 * Math.Sqrt(10.0 / 7.0)),
+            4 => -1.0 / 3.0 * Math.Sqrt(5 + 2 * Math.Sqrt(10.0 / 7.0)),
+            _ => throw new ArgumentOutOfRangeException(nameof(number), number, "Not expected point number")
+        };
+    
+    public double GetWeight(int number)
+        => number switch
+        {
+            0 => 128.0 / 225.0,
+            1 => (322.0 + 13.0 * Math.Sqrt(70.0)) / 900.0,
+            2 => (322.0 + 13.0 * Math.Sqrt(70.0)) / 900.0,
+            3 => (322.0 - 13.0 * Math.Sqrt(70.0)) / 900.0,
+            4 => (322.0 - 13.0 * Math.Sqrt(70.0)) / 900.0,
+            _ => throw new ArgumentOutOfRangeException(nameof(number), number, "Not expected weight number")
+        };
 }

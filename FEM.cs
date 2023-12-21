@@ -61,29 +61,58 @@ public class FEM
                 break;
         }
 
-        for ( ; itime < _timeGrid.TGrid.Length; itime++)
+        using (var sw = new StreamWriter("Tests/5.csv"))
         {
-            AssemblySLAE(itime);
-            AccountDirichletBoundaries(itime);
-            
-            _slae.SetSLAE(_globalVector, _globalMatrix);
-            _solution = _slae.Solve();
-
-            switch (_scheme)
+            for ( ; itime < _timeGrid.TGrid.Length; itime++)
             {
-                case Scheme.Three_layer_Implicit:
-                    Vector.Copy(_layers[1], _layers[0]);
-                    Vector.Copy(_solution, _layers[1]);
-                    break;
+                AssemblySLAE(itime);
+                //AccountDirichletBoundaries(itime);
+
+                Vector kek = new Vector(_globalVector.Length);
+                for (int i = 0; i < kek.Length; i++)
+                {
+                    kek[i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis());
+                }
+
+                _solution = _globalMatrix * kek;
+                break;
                 
-                case Scheme.Four_layer_Implicit:
-                    Vector.Copy(_layers[1], _layers[0]);
-                    Vector.Copy(_layers[2], _layers[1]);
-                    Vector.Copy(_solution, _layers[2]);
-                    break;
+                _slae.SetSLAE(_globalVector, _globalMatrix);
+                _solution = _slae.Solve();
+
+                switch (_scheme)
+                {
+                    case Scheme.Three_layer_Implicit:
+                        Vector.Copy(_layers[1], _layers[0]);
+                        Vector.Copy(_solution, _layers[1]);
+                        break;
+                    
+                    case Scheme.Four_layer_Implicit:
+                        Vector.Copy(_layers[1], _layers[0]);
+                        Vector.Copy(_layers[2], _layers[1]);
+                        Vector.Copy(_solution, _layers[2]);
+                        break;
+                }
+                
+                double error = 0;
+                for (int i = 0; i < _grid.Edges.Length; i++)
+                {
+                    error += Math.Pow(
+                        _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
+                }
+                PrintError(itime);
+                sw.WriteLine($"{_timeGrid[itime]},{Math.Sqrt(error / _grid.Edges.Length)}");
+
+                //for (int i = 0; i < _grid.Edges.Length; i++)
+                //{
+                //    sw.WriteLine(
+                //        $"{i + 1},{_solution[i]},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis())},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis()) - _solution[i]}");
+                //    
+                //    Console.WriteLine(
+                //        $"{i + 1},{_solution[i]},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis())},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis()) - _solution[i]}");
+                //}
+                //break;
             }
-            
-            PrintError(itime);
         }
     }
 

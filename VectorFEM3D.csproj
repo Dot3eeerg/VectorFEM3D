@@ -7,4 +7,26 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Compile Remove="Practice_report\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Practice_report\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Practice_report\**" />
+      <None Update="GridParameters">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TimeGridParameters">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Tests\" />
+    </ItemGroup>
+
 </Project>

@@ -1,0 +1,1 @@
+#let include-code(lang: "cs", code_path) = raw(read(code_path), lang: lang)

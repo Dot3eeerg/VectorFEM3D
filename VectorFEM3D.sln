@@ -1,6 +1,6 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorFEM3D", "VectorFEM3D.csproj", "{6270F415-0E50-49B7-B472-C5BF98F40131}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VectorFEM3D", "VectorFEM3D.csproj", "{6270F415-0E50-49B7-B472-C5BF98F40131}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

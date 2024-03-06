@@ -328,7 +328,18 @@ public class Grid
     }
 }
 
-public class TimeGrid
+public interface ITimeGrid
+{
+    public double[] TGrid { get; set;  }
+    
+    public double this[int index]
+    {
+        get => TGrid[index];
+        set => TGrid[index] = value;
+    }
+}
+
+public class TimeGrid : ITimeGrid
 {
     private readonly double _tStart;
     private readonly double _tEnd;
@@ -374,4 +385,27 @@ public class TimeGrid
 
         TGrid[_tSteps] = _tEnd;
     }
+}
+
+public class GeneratedTimeGrid : ITimeGrid
+{
+    public double[] TGrid { get; set;  }
+
+    public GeneratedTimeGrid(string path)
+    {
+        using (var sr = new StreamReader(path))
+        {
+            string[] data;
+            data = sr.ReadToEnd()!.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+            TGrid = new double[(data.Length - 1) / 2];
+            TGrid = data.Select(Convert.ToDouble).ToArray();
+        }
+    }
+
+    public double this[int index]
+    {
+        get => TGrid[index];
+        set => TGrid[index] = value;
+    }
+
 }

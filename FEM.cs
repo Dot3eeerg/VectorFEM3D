@@ -10,14 +10,14 @@ public class FEM
     private Matrix? _stiffnessMatrix;
     private Matrix? _massMatrix;
     private Grid? _grid;
-    private TimeGrid _timeGrid;
+    private ITimeGrid _timeGrid;
     private Test? _test;
     private IBasis3D? _basis;
     private Integration? _integration;
     private SLAE? _slae;
     private Scheme _scheme;
 
-    public FEM(Grid grid, TimeGrid timeGrid)
+    public FEM(Grid grid, ITimeGrid timeGrid)
     {
         _grid = grid;
         _timeGrid = timeGrid;

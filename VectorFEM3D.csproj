@@ -19,6 +19,9 @@
     <None Update="TimeGridParameters">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="time_s.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Tests\" />

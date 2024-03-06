@@ -4,8 +4,10 @@ Grid grid = new Grid("GridParameters");
 grid.BuildGrid();
 grid.AccountBoundaryConditions();
 
-TimeGrid timeGrid = new TimeGrid("TimeGridParameters");
-timeGrid.BuildTimeGrid();
+//TimeGrid timeGrid = new TimeGrid("TimeGridParameters");
+//timeGrid.BuildTimeGrid();
+
+GeneratedTimeGrid timeGrid = new GeneratedTimeGrid("time_s.txt");
 
 FEM fem = new FEM(grid, timeGrid);
 

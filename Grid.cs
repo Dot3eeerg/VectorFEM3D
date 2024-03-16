@@ -21,7 +21,14 @@ public class Grid
     private readonly double[] _zZones;
     private readonly int[][] _zones;
     private readonly double[] _sigmaValues;
-    
+
+    private readonly List<List<double>> _xValues = new List<List<double>>();
+    private readonly List<List<double>> _yValues = new List<List<double>>();
+    private readonly List<List<double>> _zValues = new List<List<double>>();
+
+    private List<List<Point3D>> NodeList = new List<List<Point3D>>();
+    private Edge3D[][] EdgeList;
+    private List<(int, HashSet<int>)> _identicalPoints = new List<(int, HashSet<int>)>();
     public Point3D[] Nodes { get; private set; }
     public Edge3D[] Edges { get; private set; }
     public HashSet<int> DirichletBoundaries { get; private set; } 
@@ -94,8 +101,12 @@ public class Grid
 
     public void BuildGrid()
     {
-        Elements = new int[_xSteps * _ySteps * _zSteps].Select(_ => new int[12]).ToArray();
-        Nodes = new Point3D[(_xSteps + 1) * (_ySteps + 1) * (_zSteps + 1)];
+        Elements = new int[8 * _xSteps * _ySteps * _zSteps].Select(_ => new int[12]).ToArray();
+        Nodes = new Point3D[8 * (_xSteps + 1) * (_ySteps + 1) * (_zSteps + 1)];
+        for (int i = 0; i < 8; i++)
+        {
+            NodeList.Add(new List<Point3D>());
+        }
 
         double sumRazX = 0, sumRazY = 0, sumRazZ = 0;
         for (int i = 0; i < _xSteps; i++)
@@ -109,6 +120,7 @@ public class Grid
 
         int nodesInRow = _xSteps + 1;
         int nodesInSlice = nodesInRow * (_ySteps + 1);
+        int nodesInOct = nodesInSlice * (_zSteps + 1);
 
         int zEdges = _zSteps * nodesInSlice;
         int xEdges = _xSteps;
@@ -116,6 +128,7 @@ public class Grid
         int edgesInSlice = xEdges * (1 + _ySteps) + yEdges * _ySteps;
 
         Edges = new Edge3D[edgesInSlice * (_zSteps + 1) + zEdges];
+        EdgeList = new Edge3D[8].Select(_ => new Edge3D[edgesInSlice * (_zSteps + 1) + zEdges]).ToArray();
 
         double x = _xStart, y = _yStart, z = _zStart;
         double xStep = (_xEnd - _xStart) / sumRazX;
@@ -124,74 +137,187 @@ public class Grid
 
         DirichletBoundaries = new();
         NewmanBoundaries = new();
+        
+        _xValues.Add(new List<double>());
+        _xValues.Add(new List<double>());
+        
+        _yValues.Add(new List<double>());
+        _yValues.Add(new List<double>());
+        
+        _zValues.Add(new List<double>());
+        _zValues.Add(new List<double>());
 
-        for (int j = 0; j < _xSteps; j++)
+        for (int i = 0; i < _xSteps; i++)
         {
-            Nodes[j] = new(x, y, z);
+            _xValues[0].Add(x);
+            _xValues[1].Add(-x);
             x += xStep;
             xStep *= _xRaz;
         }
-
-        Nodes[_xSteps] = new(_xEnd, y, z);
-
-        for (int i = 1; i <= _ySteps; i++)
+        _xValues[0].Add(_xEnd);
+        _xValues[1].Add(-_xEnd);
+        
+        for (int i = 0; i < _ySteps; i++)
         {
+            _yValues[0].Add(y);
+            _yValues[1].Add(-y);
             y += yStep;
             yStep *= _yRaz;
-            for (int j = 0; j < _xSteps + 1; j++)
-            {
-                Nodes[i * nodesInRow + j] = new(Nodes[j].X, y, z);
-            }
         }
-
-        for (int i = 1; i <= _zSteps; i++)
+        _yValues[0].Add(_yEnd);
+        _yValues[1].Add(-_yEnd);
+        
+        for (int i = 0; i < _zSteps; i++)
         {
+            _zValues[0].Add(z);
+            _zValues[1].Add(-z);
             z += zStep;
             zStep *= _zRaz;
-            for (int j = 0; j < _ySteps + 1; j++)
-            {
-                for (int k = 0; k < _xSteps + 1; k++)
-                    Nodes[i * nodesInSlice + j * nodesInRow + k] = new(Nodes[k].X, Nodes[j * nodesInRow].Y, z);
-            }
         }
+        _zValues[0].Add(_zEnd);
+        _zValues[1].Add(-_zEnd);
 
-        int index = 0;
-        
-        for (int j = 0; j < _zSteps + 1; j++)
+        for (int i = 0; i < _zValues.Count; i++)
         {
-            int xLocal = 0;
-            int yLocal = 0;
-            int zLocal = 0;
-
-
-            for (int i = 0; i < nodesInSlice / nodesInRow; i++)
+            for (int i1 = 0; i1 < _zValues[i].Count; i1++)
             {
-                for (int k = 0; k < nodesInRow - 1; k++)
+                for (int j = 0; j < _yValues.Count; j++)
                 {
-                    Edges[index++] = new Edge3D(Nodes[xLocal + nodesInSlice * j], Nodes[xLocal + nodesInSlice * j + 1]);
-                    xLocal++;
-                }
-
-                xLocal++;
-
-                if (i != nodesInSlice / nodesInRow - 1)
-                {
-                    for (int k = 0; k < nodesInRow; k++)
+                    for (int j1 = 0; j1 < _yValues[j].Count; j1++)
                     {
-                        Edges[index++] = new Edge3D(Nodes[yLocal + nodesInSlice * j],
-                            Nodes[yLocal + nodesInSlice * j + nodesInRow]);
-                        yLocal++;
+                        for (int k = 0; k < _xValues.Count; k++)
+                        {
+                            for (int k1 = 0; k1 < _xValues[k].Count; k1++)
+                            {
+                                //NodeList[k + j * 2 + i * 4]
+                                //    .Add(new Point3D(_xValues[k][k1], _yValues[j][j1], _zValues[i][i1]));
+                                Nodes[(k + j * 2 + i * 4) * nodesInOct + (i1 * nodesInSlice + j1 * nodesInRow + k1)] =
+                                    new Point3D(_xValues[k][k1], _yValues[j][j1], _zValues[i][i1]);
+                            }
+                        }
                     }
                 }
             }
+        }
 
-            if (j != _zSteps)
+        var anime = false;
+        for (int i = 0; i < Nodes.Length; i++)
+        {
+            for (int j = 0; j < i; j++)
             {
-                for (int k = 0; k < nodesInSlice; k++)
+                anime = false;
+                
+                if (Nodes[i].X == Nodes[j].X && Nodes[i].Y == Nodes[j].Y && Nodes[i].Z == Nodes[j].Z)
                 {
-                    Edges[index++] = new Edge3D(Nodes[zLocal + nodesInSlice * j],
-                        Nodes[zLocal + nodesInSlice * j + nodesInSlice]);
-                    zLocal++;
+                    for (int k = 0; k < _identicalPoints.Count; k++)
+                    {
+                        if (_identicalPoints[k].Item1 == j)
+                        {
+                            _identicalPoints[k].Item2.Add(i);
+                            anime = true;
+                        }
+                    }
+
+                    if (!anime)
+                    {
+                        _identicalPoints.Add(new(j, new HashSet<int>()));
+                    }
+                }
+            }
+        }
+
+        //for (int i = 0; i < _zValues.Count; i++)
+        //{
+        //    for (int j = 0; j < _yValues.Count; j++)
+        //    {
+        //        for (int k = 0; k < _xValues.Count; k++)
+        //        {
+        //            Nodes[i * nodesInSlice + j * nodesInRow + k] = new(_xValues[k], _yValues[j], _zValues[i]);
+        //        }
+        //    }
+        //}
+
+        //for (int j = 0; j < _xSteps; j++)
+        //{
+        //    Nodes[j] = new(x, y, z);
+        //    x += xStep;
+        //    xStep *= _xRaz;
+        //}
+
+        //Nodes[_xSteps] = new(_xEnd, y, z);
+
+        //for (int i = 1; i <= _ySteps; i++)
+        //{
+        //    y += yStep;
+        //    yStep *= _yRaz;
+        //    for (int j = 0; j < _xSteps + 1; j++)
+        //    {
+        //        Nodes[i * nodesInRow + j] = new(Nodes[j].X, y, z);
+        //    }
+        //}
+
+        //for (int i = 1; i <= _zSteps; i++)
+        //{
+        //    z += zStep;
+        //    zStep *= _zRaz;
+        //    for (int j = 0; j < _ySteps + 1; j++)
+        //    {
+        //        for (int k = 0; k < _xSteps + 1; k++)
+        //            Nodes[i * nodesInSlice + j * nodesInRow + k] = new(Nodes[k].X, Nodes[j * nodesInRow].Y, z);
+        //    }
+        //}
+
+        int index = 0;
+
+        for (int kek = 0; kek < 8; kek++)
+        {
+            index = 0;
+            
+            for (int j = 0; j < _zSteps + 1; j++)
+            {
+                int xLocal = 0;
+                int yLocal = 0;
+                int zLocal = 0;
+
+
+                for (int i = 0; i < nodesInSlice / nodesInRow; i++)
+                {
+                    // edge on x
+                    for (int k = 0; k < nodesInRow - 1; k++)
+                    {
+                        //Edges[index++] = new Edge3D(Nodes[xLocal + nodesInSlice * j], Nodes[xLocal + nodesInSlice * j + 1]);
+                        EdgeList[kek][index++] = new Edge3D(NodeList[kek][xLocal + nodesInSlice * j],
+                            NodeList[kek][xLocal + nodesInSlice * j + 1]);
+                        xLocal++;
+                    }
+
+                    xLocal++;
+
+                    // edge on y
+                    if (i != nodesInSlice / nodesInRow - 1)
+                    {
+                        for (int k = 0; k < nodesInRow; k++)
+                        {
+                            //Edges[index++] = new Edge3D(Nodes[yLocal + nodesInSlice * j],
+                            //    Nodes[yLocal + nodesInSlice * j + nodesInRow]);
+                            EdgeList[kek][index++] = new Edge3D(NodeList[kek][yLocal + nodesInSlice * j],
+                                NodeList[kek][yLocal + nodesInSlice * j + nodesInRow]);
+                            yLocal++;
+                        }
+                    }
+                }
+
+                // edge on z
+                if (j != _zSteps)
+                {
+                    for (int k = 0; k < nodesInSlice; k++)
+                    {
+                        //Edges[index++] = new Edge3D(Nodes[zLocal + nodesInSlice * j],
+                        //    Nodes[zLocal + nodesInSlice * j + nodesInSlice]);
+                        EdgeList[kek][index++] = new Edge3D(NodeList[kek][zLocal + nodesInSlice * j],
+                            NodeList[kek][zLocal + nodesInSlice * j + nodesInSlice]);
+                        zLocal++;
+                    }
                 }
             }
         }
@@ -204,6 +330,7 @@ public class Grid
             {
                 for (int j = 0; j < _xSteps; j++)
                 {
+                    // x
                     Elements[index][0] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i;
                     Elements[index][1] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * (i + 1);
                     Elements[index][2] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges;

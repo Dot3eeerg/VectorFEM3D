@@ -435,4 +435,30 @@ public class FEM
         }
         Console.WriteLine($"Layer error {itime} = {Math.Sqrt(error / _grid.Edges.Length)}");
     }
+
+    public Vector3D GetValue(Point3D point)
+    {
+        var vector = new Vector3D(0, 0, 0);
+        var kek = new Point3D(0, 0, 0);
+
+        foreach (var elem in _grid.Elements)
+        {
+            if (point.X >= _grid.Edges[elem[0]].Point0.X && point.X < _grid.Edges[elem[11]].Point1.X &&
+                point.Y >= _grid.Edges[elem[0]].Point0.Y && point.Y < _grid.Edges[elem[11]].Point1.Y &&
+                point.Z >= _grid.Edges[elem[0]].Point0.Z && point.Z < _grid.Edges[elem[11]].Point1.Z)
+            {
+                kek.X = (point.X - _grid.Edges[elem[0]].Point0.X) / _grid.Edges[elem[0]].Length;
+                kek.Y = (point.Y - _grid.Edges[elem[2]].Point0.Y) / _grid.Edges[elem[2]].Length;
+                kek.Z = (point.Z - _grid.Edges[elem[4]].Point0.Z) / _grid.Edges[elem[4]].Length;
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    vector += _basis.GetPsi(i, kek) * _solution[elem[i]];
+                }
+                
+                break;
+            }
+        }
+
+        return vector;
+    }
 }

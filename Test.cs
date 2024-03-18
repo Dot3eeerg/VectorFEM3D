@@ -47,7 +47,8 @@ public class Test1 : Test
         {
             0 => point.Y * point.Y + t,
             1 => point.X + t,
-            2 => point.Z + t,
+            2 => point.X + t,
+            //2 => point.Z + t,
             _ => throw new Exception("Can't find UValue type")
         };
 

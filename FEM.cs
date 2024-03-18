@@ -52,6 +52,14 @@ public class FEM
         
         switch (_scheme)
         {
+            case Scheme.Natural:
+                itime = 0;
+                break;
+            
+            case Scheme.Two_layer_Implicit:
+                itime = 1;
+                break;
+            
             case Scheme.Three_layer_Implicit:
                 itime = 2;
                 break;
@@ -82,6 +90,10 @@ public class FEM
 
                 switch (_scheme)
                 {
+                    case Scheme.Two_layer_Implicit:
+                        Vector.Copy(_solution, _layers[0]);
+                        break;
+                    
                     case Scheme.Three_layer_Implicit:
                         Vector.Copy(_layers[1], _layers[0]);
                         Vector.Copy(_solution, _layers[1]);
@@ -151,6 +163,25 @@ public class FEM
         
         switch (_scheme)
         {
+            case Scheme.Two_layer_Implicit:
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    for (int j = 0; j < _basis.Size; j++)
+                    {
+                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
+                    }
+
+                }
+                
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 1) * qj1[i];
+
+                    _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+                }
+                
+                break;
+            
             case Scheme.Three_layer_Implicit:
 
                 for (int i = 0; i < _basis.Size; i++)
@@ -302,12 +333,32 @@ public class FEM
     private double SchemeUsage(int ielem, int itime, Scheme scheme, int i)
     {
        double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
-       double t02 = _timeGrid[itime] - _timeGrid[itime - 2];
-       double t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
-                
-        switch (scheme)
+       double t02;
+       double t12;
+       
+       switch (scheme)
         {
+            case Scheme.Two_layer_Implicit:
+                switch (i)
+                {
+                    // тут только параболическая, эпсилон для гиперболики придётся добавить
+                    case 0:
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                            _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                            _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) / t01);
+                    
+                    case 1:
+                        return (_grid.GetSigma(new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+                            _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+                            _grid.Edges[_grid.Elements[ielem][11]].Point.Z)) / t01);
+                }
+                
+                break;
+            
             case Scheme.Three_layer_Implicit:
+                t02 = _timeGrid[itime] - _timeGrid[itime - 2];
+                t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
+                
                 switch (i)
                 {
                     case 0:
@@ -331,6 +382,8 @@ public class FEM
                 break;
             
             case Scheme.Four_layer_Implicit:
+                t02 = _timeGrid[itime] - _timeGrid[itime - 2];
+                t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
                 double t03 = _timeGrid[itime] - _timeGrid[itime - 3];
                 double t13 = _timeGrid[itime - 1] - _timeGrid[itime - 3];
                 double t23 = _timeGrid[itime - 2] - _timeGrid[itime - 3];
@@ -404,6 +457,13 @@ public class FEM
     {
         switch (_scheme)
         {
+            case Scheme.Two_layer_Implicit:
+                for (int i = 0; i < _grid.Edges.Length; i++)
+                {
+                    _layers[0][i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis());
+                }
+                break;
+            
             case Scheme.Three_layer_Implicit:
                 for (int i = 0; i < _grid.Edges.Length; i++)
                 {

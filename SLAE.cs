@@ -263,8 +263,8 @@ public class BCGSTABSolver : SLAE
 
       double vecNorm = vector.Norm();
 
-      SparseMatrix matrixLU = new(matrix.Size, matrix.Jg.Length);
-      SparseMatrix.Copy(matrix, matrixLU);
+      //SparseMatrix matrixLU = new(matrix.Size, matrix.Jg.Length);
+      //SparseMatrix.Copy(matrix, matrixLU);
 
       Vector r = new(vector.Length);
       Vector p = new(vector.Length);
@@ -280,14 +280,17 @@ public class BCGSTABSolver : SLAE
 
       int i;
 
-      LU(matrixLU);
+      //LU(matrixLU);
 
       Vector r0 = vector - matrix * solution;
       Vector.Copy(r0, r);
 
       for (i = 1; i <= maxIters && r.Norm() / vecNorm > eps; i++)
       {
+         Console.WriteLine($"{i} {r.Norm() / vecNorm}");
          rhoPrev = rho;
+
+         
          rho = (r0 * r);
 
          beta = rho / rhoPrev * alpha / omega;
@@ -295,7 +298,28 @@ public class BCGSTABSolver : SLAE
          p = r + beta * (p - omega * v);
 
          v = matrix * p;
+         
+         //if (i == 725)
+         //if (i == 726)
+         //{
+         //   List<double> res = new List<double>();
+         //   res.Add(0);
+         //   for (int j = 0; j < r0.Length; j++)
+         //   {
+         //      res[0] += r0[j] * v[j];
+         //      res.Add(0);
+         //      res[^1] += r0[j] * v[j];
+         //      Console.WriteLine($"{r0[j]} \t {v[j]} \t {res[^1]}");
+         //   }
+         //   Console.WriteLine("ended");
+         //   break;
+         //}
 
+         var kek = r0 * v;
+         if (kek == 0)
+         {
+            break;
+         }
          alpha = rho / (r0 * v);
 
          s = r - alpha * v;

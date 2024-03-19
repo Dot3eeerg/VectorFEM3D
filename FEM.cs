@@ -16,6 +16,7 @@ public class FEM
     private Integration? _integration;
     private SLAE? _slae;
     private Scheme _scheme;
+    private Scheme _activeScheme;
 
     public FEM(Grid grid, ITimeGrid timeGrid)
     {
@@ -41,6 +42,7 @@ public class FEM
     public void SetScheme(Scheme scheme)
     {
         _scheme = scheme;
+        _activeScheme = scheme;
     }
 
     public void Compute()
@@ -54,6 +56,24 @@ public class FEM
         {
             case Scheme.Natural:
                 itime = 0;
+                AssemblySLAE(itime);
+                
+                AccountDirichletBoundaries(itime);
+                
+                for (int i = 0; i < _globalMatrix.Size; i++)
+                {
+                    _globalMatrix.Di[i] += 1e-2;
+                }
+                
+                
+                _slae.SetSLAE(_globalVector, _globalMatrix);
+                _solution = _slae.Solve();
+                
+                Vector.Copy(_solution, _layers[0]);
+
+                _activeScheme = Scheme.Two_layer_Implicit;
+                itime++;
+                
                 break;
             
             case Scheme.Two_layer_Implicit:
@@ -68,6 +88,7 @@ public class FEM
                 itime = 3;
                 break;
         }
+        
 
         using (var sw = new StreamWriter("Tests/5.csv"))
         {
@@ -76,11 +97,11 @@ public class FEM
                 AssemblySLAE(itime);
                 AccountDirichletBoundaries(itime);
 
-                Vector kek = new Vector(_globalVector.Length);
-                for (int i = 0; i < kek.Length; i++)
-                {
-                    kek[i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis());
-                }
+                //Vector kek = new Vector(_globalVector.Length);
+                //for (int i = 0; i < kek.Length; i++)
+                //{
+                //    kek[i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis());
+                //}
 
                 //_solution = _globalMatrix * kek;
                 //break;
@@ -88,15 +109,41 @@ public class FEM
                 _slae.SetSLAE(_globalVector, _globalMatrix);
                 _solution = _slae.Solve();
 
+                var kek = GetValue(new Point3D(0.0, 0.0, 30));
+
                 switch (_scheme)
                 {
                     case Scheme.Two_layer_Implicit:
-                        Vector.Copy(_solution, _layers[0]);
+                        if (_scheme == Scheme.Natural)
+                        {
+                            _activeScheme = Scheme.Three_layer_Implicit;
+                            
+                            Vector.Copy(_layers[1], _layers[0]);
+                            Vector.Copy(_solution, _layers[1]);
+                        }
+                        
+                        else
+                        {
+                            Vector.Copy(_solution, _layers[0]);
+                        }
                         break;
                     
                     case Scheme.Three_layer_Implicit:
-                        Vector.Copy(_layers[1], _layers[0]);
-                        Vector.Copy(_solution, _layers[1]);
+                        if (_scheme == Scheme.Natural)
+                        {
+                            _activeScheme = Scheme.Four_layer_Implicit;
+                            
+                            Vector.Copy(_layers[1], _layers[0]);
+                            Vector.Copy(_layers[2], _layers[1]);
+                            Vector.Copy(_solution, _layers[2]);
+                        }
+
+                        else
+                        {
+                            Vector.Copy(_layers[1], _layers[0]);
+                            Vector.Copy(_solution, _layers[1]);
+                        }
+                        
                         break;
                     
                     case Scheme.Four_layer_Implicit:
@@ -113,7 +160,7 @@ public class FEM
                         _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
                 }
                 PrintError(itime);
-                sw.WriteLine($"{_timeGrid[itime]},{Math.Sqrt(error / _grid.Edges.Length)}");
+                //sw.WriteLine($"{_timeGrid[itime]},{Math.Sqrt(error / _grid.Edges.Length)}");
 
                 //for (int i = 0; i < _grid.Edges.Length; i++)
                 //{
@@ -136,8 +183,11 @@ public class FEM
         for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
         {
             AssemblyLocalElement(ielem, itime);
-            
-            _stiffnessMatrix += SchemeUsage(ielem, itime, _scheme, 0) * _massMatrix;
+
+            if (_activeScheme != Scheme.Natural)
+            {
+                _stiffnessMatrix += SchemeUsage(ielem, itime, _activeScheme, 0) * _massMatrix;
+            }
 
             for (int i = 0; i < _basis.Size; i++)
             {
@@ -161,8 +211,24 @@ public class FEM
         double[] qj2 = new double[_basis.Size];
         double[] qj1 = new double[_basis.Size];
         
-        switch (_scheme)
+        switch (_activeScheme)
         {
+            case Scheme.Natural:
+              if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X >= -13 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.X <= 13 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y >= -13 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y <= 13 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Z <= 30 &&
+                  _grid.Edges[_grid.Elements[ielem][11]].Point1.Z >= 30)
+              {
+                  for (int i = 0; i < _basis.Size; i++)
+                  {
+                      _globalVector[_grid.Elements[ielem][i]] = 1;
+                  }
+              }
+
+              break;
+            
             case Scheme.Two_layer_Implicit:
                 for (int i = 0; i < _basis.Size; i++)
                 {
@@ -175,7 +241,7 @@ public class FEM
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 1) * qj1[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj1[i];
 
                     _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
                 }
@@ -195,8 +261,8 @@ public class FEM
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 1) * qj2[i];
-                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 2) * qj1[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj2[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 2) * qj1[i];
                     
                     _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
                 }
@@ -217,9 +283,9 @@ public class FEM
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 1) * qj3[i];
-                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 2) * qj2[i];
-                    _localVector[i] += SchemeUsage(ielem, itime, _scheme, 3) * qj1[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj3[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 2) * qj2[i];
+                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 3) * qj1[i];
                     
                     _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
                 }
@@ -332,13 +398,14 @@ public class FEM
 
     private double SchemeUsage(int ielem, int itime, Scheme scheme, int i)
     {
-       double t01 = _timeGrid[itime] - _timeGrid[itime - 1];
+       double t01;
        double t02;
        double t12;
        
        switch (scheme)
         {
             case Scheme.Two_layer_Implicit:
+                t01 = _timeGrid[itime] - _timeGrid[itime - 1];
                 switch (i)
                 {
                     // тут только параболическая, эпсилон для гиперболики придётся добавить
@@ -356,6 +423,7 @@ public class FEM
                 break;
             
             case Scheme.Three_layer_Implicit:
+                t01 = _timeGrid[itime] - _timeGrid[itime - 1];
                 t02 = _timeGrid[itime] - _timeGrid[itime - 2];
                 t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
                 
@@ -382,6 +450,7 @@ public class FEM
                 break;
             
             case Scheme.Four_layer_Implicit:
+                t01 = _timeGrid[itime] - _timeGrid[itime - 1];
                 t02 = _timeGrid[itime] - _timeGrid[itime - 2];
                 t12 = _timeGrid[itime - 1] - _timeGrid[itime - 2];
                 double t03 = _timeGrid[itime] - _timeGrid[itime - 3];

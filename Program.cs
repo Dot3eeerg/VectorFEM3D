@@ -14,10 +14,11 @@ FEM fem = new FEM(grid, timeGrid);
 fem.SetTest(new Test1(grid));
 
 //fem.SetSolver(new BCGSTABLUSolver(1e-16, 1000));
-fem.SetSolver(new BCGSTABSolver(1e-16, 1000));
+fem.SetSolver(new BCGSTABSolver(1e-14, 5000));
 //fem.SetSolver(new LUSolver());
 
-fem.SetScheme(Scheme.Two_layer_Implicit);
+fem.SetScheme(Scheme.Natural);
+//fem.SetScheme(Scheme.Two_layer_Implicit);
 //fem.SetScheme(Scheme.Three_layer_Implicit);
 //fem.SetScheme(Scheme.Four_layer_Implicit);
 

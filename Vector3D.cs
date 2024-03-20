@@ -50,6 +50,14 @@ public class Vector3D
         return vector1;
     }
     
+    public static Vector3D operator -(Vector3D vector1, Vector3D vector2)
+    {
+        vector1._x -= vector2._x;
+        vector1._y -= vector2._y;
+        vector1._z -= vector2._z;
+        return vector1;
+    }
+    
     public static Vector3D operator *(Vector3D vector1, double value2)
     {
         vector1._x *= value2;

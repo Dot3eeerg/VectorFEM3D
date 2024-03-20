@@ -17,6 +17,9 @@ public class FEM
     private SLAE? _slae;
     private Scheme _scheme;
     private Scheme _activeScheme;
+    
+    private const double _mu0 = 1.25653706212 * 10e-6;
+    //private const double _mu0 = 4 * Math.PI * 10e-7;
 
     public FEM(Grid grid, ITimeGrid timeGrid)
     {
@@ -56,23 +59,123 @@ public class FEM
         {
             case Scheme.Natural:
                 itime = 0;
-                AssemblySLAE(itime);
-                
-                AccountDirichletBoundaries(itime);
-                
-                for (int i = 0; i < _globalMatrix.Size; i++)
-                {
-                    _globalMatrix.Di[i] += 1e-2;
-                }
-                
-                
-                _slae.SetSLAE(_globalVector, _globalMatrix);
-                _solution = _slae.Solve();
-                
-                Vector.Copy(_solution, _layers[0]);
+                //AssemblySLAE(itime);
+                //
+                //AccountDirichletBoundaries(itime);
+                //
+                //for (int i = 0; i < _globalMatrix.Size; i++)
+                //{
+                //    _globalMatrix.Di[i] += 1e-2;
+                //}
+                //
+                //
+                //_slae.SetSLAE(_globalVector, _globalMatrix);
+                //_solution = _slae.Solve();
+                //
+                //Vector.Copy(_solution, _layers[0]);
 
                 _activeScheme = Scheme.Two_layer_Implicit;
                 itime++;
+
+                var genNumber = FindElementNumberForGenerator();
+                var hx = 1e-2;
+                var hy = 1e-2;
+                foreach (var iGen in genNumber)
+                {
+                    var stepsX = (_grid.Edges[_grid.Elements[iGen][11]].Point1.X -
+                             _grid.Edges[_grid.Elements[iGen][0]].Point0.X) / hx;
+                    var stepsY = (_grid.Edges[_grid.Elements[iGen][11]].Point1.Y -
+                             _grid.Edges[_grid.Elements[iGen][0]].Point0.Y) / hy;
+
+                    for (int i = 0; i < _grid.Edges.Length; i++)
+                    {
+                        double point = 0;
+                        switch (_grid.Edges[i].GetAxis())
+                        {
+                            case 0:
+                                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.X + hx / 2;
+                                
+                                for (int j = 0; j < stepsX; j++)
+                                {
+                                    _solution[i] += _mu0 / (4 * Math.PI) * hx / Math.Sqrt(
+                                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                                        Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Y - _grid.Edges[i].Point.X,
+                                            2) + Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Z - _grid.Edges[i].Point.Z,
+                                            2));
+                                    
+                                    _solution[i] += -_mu0 / (4 * Math.PI) * hx / Math.Sqrt(
+                                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                                        Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Y - _grid.Edges[i].Point.X,
+                                            2) + Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Z - _grid.Edges[i].Point.Z,
+                                            2));
+                                    
+                                    point += hx;
+                                }
+                                
+                                break;
+                            
+                            case 1:
+                                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.Y + hy / 2;
+                                
+                                for (int j = 0; j < stepsY; j++)
+                                {
+                                    _solution[i] += _mu0 / (4 * Math.PI) * hy / Math.Sqrt(
+                                        Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][3]].Point0.X - _grid.Edges[i].Point.X,
+                                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                                        Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][3]].Point0.Z - _grid.Edges[i].Point.Z,
+                                            2));
+                                    
+                                    _solution[i] += -_mu0 / (4 * Math.PI) * hy / Math.Sqrt(
+                                        Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][2]].Point0.X - _grid.Edges[i].Point.X,
+                                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                                        Math.Pow(
+                                            _grid.Edges[_grid.Elements[iGen][2]].Point0.Z - _grid.Edges[i].Point.Z,
+                                            2));
+                                    
+                                    point += hy;
+                                }
+                                
+                                break;
+                            
+                            case 2:
+                                break;
+                        }
+                    }
+                    
+                    //_solution[_grid.Elements[iGen][0]] = 1e-6;
+                    //_solution[_grid.Elements[iGen][1]] = -1e-6;
+                    //_solution[_grid.Elements[iGen][2]] = -1e-6;
+                    //_solution[_grid.Elements[iGen][3]] = 1e-6;
+                }
+
+                var A1 = GetValue(new Point3D(-10, 0.0, 30.0));
+                var A2 = GetValue(new Point3D(0.0, -10, 30.0));
+                var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
+                var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
+                
+                var A3 = GetValue(new Point3D(8, 0.0, 30.0));
+                var A4 = GetValue(new Point3D(0.0, 8, 30.0));
+                var modA3 = Math.Sqrt(Math.Pow(A3.X, 2) + Math.Pow(A3.Y, 2) + Math.Pow(A3.Z, 2));
+                var modA4 = Math.Sqrt(Math.Pow(A4.X, 2) + Math.Pow(A4.Y, 2) + Math.Pow(A4.Z, 2));
+                
+                var A5 = GetValue(new Point3D(-48, 0.0, -10.0));
+                var A6 = GetValue(new Point3D(0.0, -48, -10.0));
+                var modA5 = Math.Sqrt(Math.Pow(A5.X, 2) + Math.Pow(A5.Y, 2) + Math.Pow(A5.Z, 2));
+                var modA6 = Math.Sqrt(Math.Pow(A6.X, 2) + Math.Pow(A6.Y, 2) + Math.Pow(A6.Z, 2));
+                
+                var A7 = GetValue(new Point3D(29, 0.0, 5.0));
+                var A8 = GetValue(new Point3D(0.0, 29, 5.0));
+                var modA7 = Math.Sqrt(Math.Pow(A7.X, 2) + Math.Pow(A7.Y, 2) + Math.Pow(A7.Z, 2));
+                var modA8 = Math.Sqrt(Math.Pow(A8.X, 2) + Math.Pow(A8.Y, 2) + Math.Pow(A8.Z, 2));
+                
+                Vector.Copy(_solution, _layers[0]);
                 
                 break;
             
@@ -109,16 +212,23 @@ public class FEM
                 _slae.SetSLAE(_globalVector, _globalMatrix);
                 _solution = _slae.Solve();
 
-                var kek = GetValue(new Point3D(0.0, 0.0, 30));
+                //var kek = GetValue(new Point3D(0.0, 0.0, 30));
+                //var anime = CalculateEMF(new Point3D(0.25, 0.25, 30), itime);
+                //var A1 = GetValue(new Point3D(2.5, 0.0, 0.0));
+                //var A2 = GetValue(new Point3D(0.0, 2.5, 0.0));
+                //var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
+                //var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
+                
+                
+                Console.WriteLine($"{itime} = {_timeGrid[itime]} EMF = {CalculateEMF(new Point3D(0.1, 0.1, 30), itime)}");
 
-                switch (_scheme)
+                switch (_activeScheme)
                 {
                     case Scheme.Two_layer_Implicit:
                         if (_scheme == Scheme.Natural)
                         {
                             _activeScheme = Scheme.Three_layer_Implicit;
                             
-                            Vector.Copy(_layers[1], _layers[0]);
                             Vector.Copy(_solution, _layers[1]);
                         }
                         
@@ -131,11 +241,12 @@ public class FEM
                     case Scheme.Three_layer_Implicit:
                         if (_scheme == Scheme.Natural)
                         {
-                            _activeScheme = Scheme.Four_layer_Implicit;
+                            //_activeScheme = Scheme.Four_layer_Implicit;
+                            
+                            //Vector.Copy(_solution, _layers[2]);
                             
                             Vector.Copy(_layers[1], _layers[0]);
-                            Vector.Copy(_layers[2], _layers[1]);
-                            Vector.Copy(_solution, _layers[2]);
+                            Vector.Copy(_solution, _layers[1]);
                         }
 
                         else
@@ -153,13 +264,13 @@ public class FEM
                         break;
                 }
                 
-                double error = 0;
-                for (int i = 0; i < _grid.Edges.Length; i++)
-                {
-                    error += Math.Pow(
-                        _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
-                }
-                PrintError(itime);
+                //double error = 0;
+                //for (int i = 0; i < _grid.Edges.Length; i++)
+                //{
+                //    error += Math.Pow(
+                //        _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
+                //}
+                //PrintError(itime);
                 //sw.WriteLine($"{_timeGrid[itime]},{Math.Sqrt(error / _grid.Edges.Length)}");
 
                 //for (int i = 0; i < _grid.Edges.Length; i++)
@@ -508,6 +619,7 @@ public class FEM
 
         _globalMatrix = new(_grid.Edges.Length, count);
         _globalVector = new(_grid.Edges.Length);
+        _solution = new(_grid.Edges.Length);
         _layers = new Vector[3].Select(_ => new Vector(_grid.Edges.Length)).ToArray();
 
         _globalMatrix.Ig[0] = 0;
@@ -579,6 +691,7 @@ public class FEM
                 kek.X = (point.X - _grid.Edges[elem[0]].Point0.X) / _grid.Edges[elem[0]].Length;
                 kek.Y = (point.Y - _grid.Edges[elem[2]].Point0.Y) / _grid.Edges[elem[2]].Length;
                 kek.Z = (point.Z - _grid.Edges[elem[4]].Point0.Z) / _grid.Edges[elem[4]].Length;
+                
                 for (int i = 0; i < _basis.Size; i++)
                 {
                     vector += _basis.GetPsi(i, kek) * _solution[elem[i]];
@@ -589,5 +702,135 @@ public class FEM
         }
 
         return vector;
+    }
+
+    private double CalculateEMF(Point3D point, int itime)
+    {
+        double result = 0;
+        double height = 30;
+        double pointX = 0;
+        double pointY = 0;
+        
+                //var hx = 1e-2;
+                //var hy = 1e-2;
+                //foreach (var iGen in genNumber)
+                //{
+                //    var stepsX = (_grid.Edges[_grid.Elements[iGen][11]].Point1.X -
+                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.X) / hx;
+                //    var stepsY = (_grid.Edges[_grid.Elements[iGen][11]].Point1.Y -
+                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.Y) / hy;
+
+                //    for (int i = 0; i < _grid.Edges.Length; i++)
+                //    {
+                //        double point = 0;
+        
+        for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
+        {
+            if (point.X >= _grid.Edges[_grid.Elements[ielem][0]].Point0.X &&
+                point.X < _grid.Edges[_grid.Elements[ielem][11]].Point1.X &&
+                point.Y >= _grid.Edges[_grid.Elements[ielem][0]].Point0.Y &&
+                point.Y < _grid.Edges[_grid.Elements[ielem][11]].Point1.Y &&
+                point.Z >= _grid.Edges[_grid.Elements[ielem][0]].Point0.Z &&
+                point.Z < _grid.Edges[_grid.Elements[ielem][11]].Point1.Z)
+            {
+                var hx = 1e-4;
+                var hy = 1e-4;
+                
+                var stepsX = (_grid.Edges[_grid.Elements[ielem][11]].Point1.X -
+                         _grid.Edges[_grid.Elements[ielem][0]].Point0.X) / hx;
+                var stepsY = (_grid.Edges[_grid.Elements[ielem][11]].Point1.Y -
+                         _grid.Edges[_grid.Elements[ielem][0]].Point0.Y) / hy;
+
+                pointX = _grid.Edges[_grid.Elements[ielem][0]].Point0.X + hx / 2;
+                pointY = _grid.Edges[_grid.Elements[ielem][0]].Point0.Y + hy / 2;
+                
+                for (int i = 0; i < stepsX; i++)
+                {
+                    result += hx *
+                              GetValueFordAdt(
+                                  new Point3D(pointX, _grid.Edges[_grid.Elements[ielem][0]].Point0.Y, point.Z), ielem,
+                                  itime).X;
+                    
+                    result += -hx *
+                              GetValueFordAdt(
+                                  new Point3D(pointX, _grid.Edges[_grid.Elements[ielem][11]].Point1.Y, point.Z), ielem,
+                                  itime).X;
+                    
+                    pointX += hx;
+                }
+                
+                for (int i = 0; i < stepsY; i++)
+                {
+                    result += hy *
+                              GetValueFordAdt(
+                                  new Point3D( _grid.Edges[_grid.Elements[ielem][0]].Point0.X, pointY, point.Z), ielem,
+                                  itime).Y;
+                    
+                    result += -hy *
+                              GetValueFordAdt(
+                                  new Point3D(_grid.Edges[_grid.Elements[ielem][11]].Point1.X, pointY, point.Z), ielem,
+                                  itime).Y;
+                    
+                    pointY += hy;
+                }
+                
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    private Vector3D GetValueFordAdt(Point3D point, int ielem, int itime)
+    {
+        var vector1 = new Vector3D(0, 0, 0);
+        var vector2 = new Vector3D(0, 0, 0);
+        var kek = new Point3D(0, 0, 0);
+        var dt = _timeGrid[itime] - _timeGrid[itime - 1];
+        
+        kek.X = (point.X - _grid.Edges[_grid.Elements[ielem][0]].Point0.X) / _grid.Edges[_grid.Elements[ielem][0]].Length;
+        kek.Y = (point.Y - _grid.Edges[_grid.Elements[ielem][2]].Point0.Y) / _grid.Edges[_grid.Elements[ielem][2]].Length;
+        kek.Z = (point.Z - _grid.Edges[_grid.Elements[ielem][4]].Point0.Z) / _grid.Edges[_grid.Elements[ielem][4]].Length;
+        
+        for (int i = 0; i < _basis.Size; i++)
+        {
+            vector1 += _basis.GetPsi(i, kek) * _solution[_grid.Elements[ielem][i]];
+            switch (_activeScheme)
+            {
+                case Scheme.Two_layer_Implicit:
+                    vector2 += _basis.GetPsi(i, kek) * _layers[0][_grid.Elements[ielem][i]];
+                    break;
+                
+                case Scheme.Three_layer_Implicit:
+                    vector2 += _basis.GetPsi(i, kek) * _layers[1][_grid.Elements[ielem][i]];
+                    break;
+                
+                case Scheme.Four_layer_Implicit:
+                    vector2 += _basis.GetPsi(i, kek) * _layers[2][_grid.Elements[ielem][i]];
+                    break;
+            }
+        }
+
+        vector1 -= vector2;
+        vector1 /= dt;
+        
+        return vector1;
+    }
+
+    private List<int> FindElementNumberForGenerator()
+    {
+        List<int> genNumbers = new List<int>();
+        for (int i = 0; i < _grid.Elements.Length; i++)
+        {
+
+            if (!(_grid.Edges[_grid.Elements[i][0]].Point0.X > 13 || -13 > _grid.Edges[_grid.Elements[i][0]].Point1.X ||
+                  _grid.Edges[_grid.Elements[i][2]].Point0.Y > 13 || -13 > _grid.Edges[_grid.Elements[i][2]].Point1.Y) &&
+                  _grid.Edges[_grid.Elements[i][0]].Point0.Z <= 30 && _grid.Edges[_grid.Elements[i][11]].Point1.Z >= 30)
+            {
+                genNumbers.Add(i);
+            }
+        }
+
+        return genNumbers;
     }
 }

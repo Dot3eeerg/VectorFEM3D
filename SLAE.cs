@@ -287,7 +287,7 @@ public class BCGSTABSolver : SLAE
 
       for (i = 1; i <= maxIters && r.Norm() / vecNorm > eps; i++)
       {
-         Console.WriteLine($"{i} {r.Norm() / vecNorm}");
+         //Console.WriteLine($"{i} {r.Norm() / vecNorm}");
          rhoPrev = rho;
 
          
@@ -315,11 +315,12 @@ public class BCGSTABSolver : SLAE
          //   break;
          //}
 
-         var kek = r0 * v;
-         if (kek == 0)
-         {
-            break;
-         }
+         //var kek = r0 * v;
+         //if (kek == 0)
+         //{
+         //   break;
+         //}
+         
          alpha = rho / (r0 * v);
 
          s = r - alpha * v;

@@ -17,6 +17,8 @@ public class FEM
     private SLAE? _slae;
     private Scheme _scheme;
     private Scheme _activeScheme;
+    //private Generator _generator = new Generator(-100, -100, 25, 100, 100, 25);
+    private Generator _generator = new Generator(-50, -50, 25, 50, 50, 25);
     
     private const double _mu0 = 1.25653706212 * 10e-6;
     //private const double _mu0 = 4 * Math.PI * 10e-7;
@@ -59,101 +61,230 @@ public class FEM
         {
             case Scheme.Natural:
                 itime = 0;
-                //AssemblySLAE(itime);
-                //
-                //AccountDirichletBoundaries(itime);
-                //
-                //for (int i = 0; i < _globalMatrix.Size; i++)
-                //{
-                //    _globalMatrix.Di[i] += 1e-2;
-                //}
-                //
-                //
-                //_slae.SetSLAE(_globalVector, _globalMatrix);
-                //_solution = _slae.Solve();
-                //
-                //Vector.Copy(_solution, _layers[0]);
 
                 _activeScheme = Scheme.Two_layer_Implicit;
                 itime++;
-
+                
                 var genNumber = FindElementNumberForGenerator();
-                var hx = 1e-2;
-                var hy = 1e-2;
-                foreach (var iGen in genNumber)
-                {
-                    var stepsX = (_grid.Edges[_grid.Elements[iGen][11]].Point1.X -
-                             _grid.Edges[_grid.Elements[iGen][0]].Point0.X) / hx;
-                    var stepsY = (_grid.Edges[_grid.Elements[iGen][11]].Point1.Y -
-                             _grid.Edges[_grid.Elements[iGen][0]].Point0.Y) / hy;
+                //HashSet<int> genEdges = new HashSet<int>();
+                //HashSet<int> genSkip = new HashSet<int>();
+                //foreach (var gen in genNumber)
+                //{
+                //    for (int iedge = 0; iedge < 4; iedge++)
+                //    {
+                //        
+                //        if ((_grid.Edges[_grid.Elements[gen][iedge]].Point0.X < _generator.xStart ||
+                //             _grid.Edges[_grid.Elements[gen][iedge]].Point1.X > _generator.xEnd) &&
+                //            (_grid.Edges[_grid.Elements[gen][iedge]].Point0.Y < _generator.yStart ||
+                //             _grid.Edges[_grid.Elements[gen][iedge]].Point1.Y > _generator.yEnd))
+                //        {
+                //            genEdges.Add(_grid.Elements[gen][iedge]);
+                //        }
+                //        else
+                //        {
+                //            genSkip.Add(_grid.Elements[gen][iedge]);
+                //        }
+                //    }
+                //}
+                
+                var hx = 5;
+                var hy = 5;
+                double delta = 1e-10;
+                
+                var stepsX = _generator.Length / hx;
+                var stepsY = _generator.Width / hy;
 
-                    for (int i = 0; i < _grid.Edges.Length; i++)
+                for (int i = 0; i < _grid.Edges.Length; i++)
+                {
+                    double point;
+                    double len1;
+                    double len2;
+                    
+                    switch (_grid.Edges[i].GetAxis())
                     {
-                        double point = 0;
-                        switch (_grid.Edges[i].GetAxis())
-                        {
-                            case 0:
-                                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.X + hx / 2;
+                        case 0:
+                            point = _generator.xStart + hx / 2.0;
+                            
+                            for (int j = 0; j < stepsX; j++)
+                            {
+                                len1 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                                                 Math.Pow(_generator.yStart - _grid.Edges[i].Point.Y, 2) +
+                                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
                                 
-                                for (int j = 0; j < stepsX; j++)
+                                if (len1 < 1e-10)
                                 {
-                                    _solution[i] += _mu0 / (4 * Math.PI) * hx / Math.Sqrt(
-                                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                                        Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Y - _grid.Edges[i].Point.X,
-                                            2) + Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Z - _grid.Edges[i].Point.Z,
-                                            2));
-                                    
-                                    _solution[i] += -_mu0 / (4 * Math.PI) * hx / Math.Sqrt(
-                                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                                        Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Y - _grid.Edges[i].Point.X,
-                                            2) + Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Z - _grid.Edges[i].Point.Z,
-                                            2));
-                                    
-                                    point += hx;
+                                    len1 = delta;
+                                }
+
+                                len2 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                                                 Math.Pow(_generator.yEnd - _grid.Edges[i].Point.Y, 2) +
+                                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+                                
+                                if (len2 < 1e-10)
+                                {
+                                    len2 = delta;
                                 }
                                 
-                                break;
-                            
-                            case 1:
-                                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.Y + hy / 2;
+                                _solution[i] += _mu0 / (4 * Math.PI) * hx / len1;
+                                _solution[i] += -_mu0 / (4 * Math.PI) * hx / len2;
                                 
-                                for (int j = 0; j < stepsY; j++)
+                                point += hx;
+                            }
+
+                            break;
+                        
+                        case 1:
+                            point = _generator.yStart + hy / 2.0;
+                            
+                            for (int j = 0; j < stepsY; j++)
+                            {
+                                len1 = Math.Sqrt(
+                                    Math.Pow(_generator.xEnd - _grid.Edges[i].Point.X, 2) +
+                                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+
+                                if (len1 < 1e-10)
                                 {
-                                    _solution[i] += _mu0 / (4 * Math.PI) * hy / Math.Sqrt(
-                                        Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][3]].Point0.X - _grid.Edges[i].Point.X,
-                                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                                        Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][3]].Point0.Z - _grid.Edges[i].Point.Z,
-                                            2));
-                                    
-                                    _solution[i] += -_mu0 / (4 * Math.PI) * hy / Math.Sqrt(
-                                        Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][2]].Point0.X - _grid.Edges[i].Point.X,
-                                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                                        Math.Pow(
-                                            _grid.Edges[_grid.Elements[iGen][2]].Point0.Z - _grid.Edges[i].Point.Z,
-                                            2));
-                                    
-                                    point += hy;
+                                    len1 = delta;
+                                }
+
+                                len2 = Math.Sqrt(
+                                    Math.Pow(_generator.xStart - _grid.Edges[i].Point.X, 2) +
+                                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+
+                                if (len2 < 1e-10)
+                                {
+                                    len2 = delta;
                                 }
                                 
-                                break;
+                                _solution[i] += _mu0 / (4 * Math.PI) * hy / len1;
+                                _solution[i] += -_mu0 / (4 * Math.PI) * hy / len2;
+                                
+                                point += hy;
+                            }
                             
-                            case 2:
-                                break;
-                        }
+                            break;
+                        
+                        case 2:
+                            break;
                     }
                     
-                    //_solution[_grid.Elements[iGen][0]] = 1e-6;
-                    //_solution[_grid.Elements[iGen][1]] = -1e-6;
-                    //_solution[_grid.Elements[iGen][2]] = -1e-6;
-                    //_solution[_grid.Elements[iGen][3]] = 1e-6;
                 }
+                
+                //foreach (var iGen in genNumber)
+                //{
+                //    stepsX = (_grid.Edges[_grid.Elements[iGen][11]].Point1.X -
+                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.X) / hx;
+                //    stepsY = (_grid.Edges[_grid.Elements[iGen][11]].Point1.Y -
+                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.Y) / hy;
+                //    
+
+                //    for (int i = 0; i < _grid.Edges.Length; i++)
+                //    {
+                //        var sum1 = 0;
+                //        var sum2 = 0;
+                //        double point = 0;
+                //        if (i == _grid.Elements[iGen][0] || i == _grid.Elements[iGen][1] || i == _grid.Elements[iGen][2] || i == _grid.Elements[iGen][3])
+                //        {
+                //            delta = 1e-10;
+                //        }
+                //        else
+                //        {
+                //            delta = 0;
+                //        }
+
+                //        switch (_grid.Edges[i].GetAxis())
+                //        {
+                //            case 0:
+                //                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.X + hx / 2.0;
+                //                
+                //                for (int j = 0; j < stepsX; j++)
+                //                {
+                //                    var tm1 = _mu0 / (4 * Math.PI) * hx / (Math.Sqrt(
+                //                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                //                        Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Y - _grid.Edges[i].Point.Y,
+                //                            2) + Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Z - _grid.Edges[i].Point.Z,
+                //                            2)) + delta);
+                //                    _solution[i] += tm1;
+                //                    
+                //                    var tm2 = -_mu0 / (4 * Math.PI) * hx / (Math.Sqrt(
+                //                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                //                        Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Y - _grid.Edges[i].Point.Y,
+                //                            2) + Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Z - _grid.Edges[i].Point.Z,
+                //                            2)) + delta);
+                //                    _solution[i] += tm2;
+                //                    //if (i == 13104)
+                //                    //{
+                //                    //    Console.WriteLine($"{tm1} {tm2}");
+                //                    //    //Console.WriteLine($"{} \t {} \t {}");
+                //                    //}
+                //                    
+                //                    
+                //                    point += hx;
+                //                }
+
+                //                //if (i == 13104)
+                //                //{
+                //                //    Console.WriteLine($"{tm1} {tm2}");
+                //                //}
+                //                
+                //                break;
+                //            
+                //            case 1:
+                //                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.Y + hy / 2.0;
+                //                
+                //                for (int j = 0; j < stepsY; j++)
+                //                {
+                //                    var t1 = _mu0 / (4 * Math.PI) * hy / (Math.Sqrt(
+                //                        Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][3]].Point0.X - _grid.Edges[i].Point.X,
+                //                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                //                        Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][3]].Point0.Z - _grid.Edges[i].Point.Z,
+                //                            2)) + delta);
+                //                    
+                //                    _solution[i] += t1;
+                //                    
+                //                    var t2 = -_mu0 / (4 * Math.PI) * hy / (Math.Sqrt(
+                //                        Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][2]].Point0.X - _grid.Edges[i].Point.X,
+                //                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                //                        Math.Pow(
+                //                            _grid.Edges[_grid.Elements[iGen][2]].Point0.Z - _grid.Edges[i].Point.Z,
+                //                            2)) + delta);
+                //                    
+                //                    _solution[i] += t2;
+                //                    
+                //                    //if (i == 13125)
+                //                    //{
+                //                    //    Console.WriteLine($"{t1} {t2}");
+                //                    //    Console.WriteLine($"{Math.Pow(
+                //                    //        _grid.Edges[_grid.Elements[iGen][2]].Point0.X - _grid.Edges[i].Point.X,
+                //                    //        2)} \t {Math.Pow(point - _grid.Edges[i].Point.Y, 2)} \t {Math.Pow(
+                //                    //        _grid.Edges[_grid.Elements[iGen][2]].Point0.Z - _grid.Edges[i].Point.Z,
+                //                    //        2)}");
+                //                    //}
+                //                    
+                //                    point += hy;
+                //                }
+                //                
+                //                break;
+                //            
+                //            case 2:
+                //                break;
+                //        }
+                //    }
+                //    
+                //    //_solution[_grid.Elements[iGen][0]] = 1e-6;
+                //    //_solution[_grid.Elements[iGen][1]] = -1e-6;
+                //    //_solution[_grid.Elements[iGen][2]] = -1e-6;
+                //    //_solution[_grid.Elements[iGen][3]] = 1e-6;
+                //}
 
                 var A1 = GetValue(new Point3D(-10, 0.0, 30.0));
                 var A2 = GetValue(new Point3D(0.0, -10, 30.0));
@@ -214,13 +345,14 @@ public class FEM
 
                 //var kek = GetValue(new Point3D(0.0, 0.0, 30));
                 //var anime = CalculateEMF(new Point3D(0.25, 0.25, 30), itime);
-                //var A1 = GetValue(new Point3D(2.5, 0.0, 0.0));
-                //var A2 = GetValue(new Point3D(0.0, 2.5, 0.0));
-                //var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
-                //var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
+                var A1 = GetValue(new Point3D(2.5, 0.0, 0.0));
+                var A2 = GetValue(new Point3D(0.0, 2.5, 0.0));
+                var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
+                var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
                 
                 
-                Console.WriteLine($"{itime} = {_timeGrid[itime]} EMF = {CalculateEMF(new Point3D(0.1, 0.1, 30), itime)}");
+                //Console.WriteLine($"{itime} = {_timeGrid[itime]} EMF = {CalculateEMF(new Point3D(0.1, 0.1, 30), itime)}");
+                Console.WriteLine($"{itime} = {_timeGrid[itime]} dBz = {-CalculatedBz(new Point3D(0, 0, 25), itime)}");
 
                 switch (_activeScheme)
                 {
@@ -325,11 +457,11 @@ public class FEM
         switch (_activeScheme)
         {
             case Scheme.Natural:
-              if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X >= -13 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.X <= 13 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y >= -13 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y <= 13 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Z <= 30 &&
+              if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X >= -51 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.X <= 51 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y >= -51 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y <= 51 &&
+                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Z <= 51 &&
                   _grid.Edges[_grid.Elements[ielem][11]].Point1.Z >= 30)
               {
                   for (int i = 0; i < _basis.Size; i++)
@@ -711,19 +843,6 @@ public class FEM
         double pointX = 0;
         double pointY = 0;
         
-                //var hx = 1e-2;
-                //var hy = 1e-2;
-                //foreach (var iGen in genNumber)
-                //{
-                //    var stepsX = (_grid.Edges[_grid.Elements[iGen][11]].Point1.X -
-                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.X) / hx;
-                //    var stepsY = (_grid.Edges[_grid.Elements[iGen][11]].Point1.Y -
-                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.Y) / hy;
-
-                //    for (int i = 0; i < _grid.Edges.Length; i++)
-                //    {
-                //        double point = 0;
-        
         for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
         {
             if (point.X >= _grid.Edges[_grid.Elements[ielem][0]].Point0.X &&
@@ -816,6 +935,73 @@ public class FEM
         
         return vector1;
     }
+    
+    private Vector3D GetValueForRotAdt(Point3D point, int ielem, int itime)
+    {
+        var vector1 = new Vector3D(0, 0, 0);
+        var vector2 = new Vector3D(0, 0, 0);
+        var kek = new Point3D(0, 0, 0);
+        var dt = _timeGrid[itime] - _timeGrid[itime - 1];
+        
+        kek.X = (point.X - _grid.Edges[_grid.Elements[ielem][0]].Point0.X) / _grid.Edges[_grid.Elements[ielem][0]].Length;
+        kek.Y = (point.Y - _grid.Edges[_grid.Elements[ielem][2]].Point0.Y) / _grid.Edges[_grid.Elements[ielem][2]].Length;
+        kek.Z = (point.Z - _grid.Edges[_grid.Elements[ielem][4]].Point0.Z) / _grid.Edges[_grid.Elements[ielem][4]].Length;
+        
+        for (int i = 0; i < _basis.Size; i++)
+        {
+            if (i is >= 4 and <= 7)
+            {
+                continue;
+            }
+            
+            vector1 += _basis.GetDPsi(i, kek) * _solution[_grid.Elements[ielem][i]];
+            
+            switch (_activeScheme)
+            {
+                case Scheme.Two_layer_Implicit:
+                    vector2 += _basis.GetDPsi(i, kek) * _layers[0][_grid.Elements[ielem][i]];
+                    break;
+                
+                case Scheme.Three_layer_Implicit:
+                    vector2 += _basis.GetDPsi(i, kek) * _layers[1][_grid.Elements[ielem][i]];
+                    break;
+                
+                case Scheme.Four_layer_Implicit:
+                    vector2 += _basis.GetDPsi(i, kek) * _layers[2][_grid.Elements[ielem][i]];
+                    break;
+            }
+        }
+
+        vector1 -= vector2;
+        vector1 /= dt;
+        
+        return vector1;
+    }
+    
+    private double CalculatedBz(Point3D point, int itime)
+    {
+        Vector3D vec1 = new(0.0, 0.0, 0.0);
+        double Axy = 0;
+        double Ayx = 0;
+
+        for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
+        {
+            if (point.X >= _grid.Edges[_grid.Elements[ielem][0]].Point0.X &&
+                point.X < _grid.Edges[_grid.Elements[ielem][11]].Point1.X &&
+                point.Y >= _grid.Edges[_grid.Elements[ielem][0]].Point0.Y &&
+                point.Y < _grid.Edges[_grid.Elements[ielem][11]].Point1.Y &&
+                point.Z >= _grid.Edges[_grid.Elements[ielem][0]].Point0.Z &&
+                point.Z < _grid.Edges[_grid.Elements[ielem][11]].Point1.Z)
+                {
+                    vec1 = GetValueForRotAdt(point, ielem, itime);
+                    
+                    break;
+                }
+        }
+
+        //return Axy - Ayx;
+        return vec1.Y - vec1.X;
+    }
 
     private List<int> FindElementNumberForGenerator()
     {
@@ -823,9 +1009,9 @@ public class FEM
         for (int i = 0; i < _grid.Elements.Length; i++)
         {
 
-            if (!(_grid.Edges[_grid.Elements[i][0]].Point0.X > 13 || -13 > _grid.Edges[_grid.Elements[i][0]].Point1.X ||
-                  _grid.Edges[_grid.Elements[i][2]].Point0.Y > 13 || -13 > _grid.Edges[_grid.Elements[i][2]].Point1.Y) &&
-                  _grid.Edges[_grid.Elements[i][0]].Point0.Z <= 30 && _grid.Edges[_grid.Elements[i][11]].Point1.Z >= 30)
+            if (!(_grid.Edges[_grid.Elements[i][0]].Point0.X > _generator.xEnd || _generator.xStart > _grid.Edges[_grid.Elements[i][0]].Point1.X ||
+                  _grid.Edges[_grid.Elements[i][2]].Point0.Y > _generator.yEnd || _generator.yStart > _grid.Edges[_grid.Elements[i][2]].Point1.Y) &&
+                  _grid.Edges[_grid.Elements[i][0]].Point0.Z <= _generator.zStart && _grid.Edges[_grid.Elements[i][11]].Point1.Z >= _generator.zEnd)
             {
                 genNumbers.Add(i);
             }

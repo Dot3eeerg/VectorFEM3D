@@ -18,7 +18,7 @@ public class FEM
     private Scheme _scheme;
     private Scheme _activeScheme;
     //private Generator _generator = new Generator(-100, -100, 25, 100, 100, 25);
-    private Generator _generator = new Generator(-50, -50, 25, 50, 50, 25);
+    private Generator _generator = new Generator(-100, -100, 25, 100, 100, 25);
     
     private const double _mu0 = 1.25653706212 * 10e-6;
     //private const double _mu0 = 4 * Math.PI * 10e-7;
@@ -352,7 +352,7 @@ public class FEM
                 
                 
                 //Console.WriteLine($"{itime} = {_timeGrid[itime]} EMF = {CalculateEMF(new Point3D(0.1, 0.1, 30), itime)}");
-                Console.WriteLine($"{itime} = {_timeGrid[itime]} dBz = {-CalculatedBz(new Point3D(0, 0, 25), itime)}");
+                Console.WriteLine($"{itime} = {_timeGrid[itime]} dBz = {CalculatedBz(new Point3D(0, 0, 25), itime)}");
 
                 switch (_activeScheme)
                 {
@@ -981,8 +981,6 @@ public class FEM
     private double CalculatedBz(Point3D point, int itime)
     {
         Vector3D vec1 = new(0.0, 0.0, 0.0);
-        double Axy = 0;
-        double Ayx = 0;
 
         for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
         {
@@ -992,11 +990,11 @@ public class FEM
                 point.Y < _grid.Edges[_grid.Elements[ielem][11]].Point1.Y &&
                 point.Z >= _grid.Edges[_grid.Elements[ielem][0]].Point0.Z &&
                 point.Z < _grid.Edges[_grid.Elements[ielem][11]].Point1.Z)
-                {
-                    vec1 = GetValueForRotAdt(point, ielem, itime);
-                    
-                    break;
-                }
+            {
+                vec1 = GetValueForRotAdt(point, ielem, itime);
+                
+                break;
+            }
         }
 
         //return Axy - Ayx;

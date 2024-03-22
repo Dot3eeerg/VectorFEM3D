@@ -21,10 +21,11 @@ public abstract class SLAE
       this.maxIters = maxIters;
    }
 
-   public void SetSLAE(Vector vector, SparseMatrix matrix)
+   public void SetSLAE(Vector vector, SparseMatrix matrix, Vector solution)
    {
       this.vector = vector;
       this.matrix = matrix;
+      this.solution = solution;
    }
 
    public abstract Vector Solve();
@@ -109,7 +110,7 @@ public class BCGSTABLUSolver : SLAE
    public BCGSTABLUSolver(double eps, int maxIters) : base(eps, maxIters) { }
    public override Vector Solve()
    {
-      solution = new(vector.Length);
+      //solution = new(vector.Length);
 
       double vecNorm = vector.Norm();
 
@@ -137,6 +138,7 @@ public class BCGSTABLUSolver : SLAE
 
       for (i = 1; i <= maxIters && r.Norm() / vecNorm > eps; i++)
       {
+         Console.WriteLine(r.Norm() / vecNorm);
          rhoPrev = rho;
          rho = (r0 * r);
 
@@ -259,7 +261,7 @@ public class BCGSTABSolver : SLAE
    public BCGSTABSolver(double eps, int maxIters) : base(eps, maxIters) { }
    public override Vector Solve()
    {
-      solution = new(vector.Length);
+      //solution = new(vector.Length);
 
       double vecNorm = vector.Norm();
 
@@ -287,7 +289,7 @@ public class BCGSTABSolver : SLAE
 
       for (i = 1; i <= maxIters && r.Norm() / vecNorm > eps; i++)
       {
-         //Console.WriteLine($"{i} {r.Norm() / vecNorm}");
+         Console.WriteLine($"{i} {r.Norm() / vecNorm}");
          rhoPrev = rho;
 
          
@@ -298,28 +300,6 @@ public class BCGSTABSolver : SLAE
          p = r + beta * (p - omega * v);
 
          v = matrix * p;
-         
-         //if (i == 725)
-         //if (i == 726)
-         //{
-         //   List<double> res = new List<double>();
-         //   res.Add(0);
-         //   for (int j = 0; j < r0.Length; j++)
-         //   {
-         //      res[0] += r0[j] * v[j];
-         //      res.Add(0);
-         //      res[^1] += r0[j] * v[j];
-         //      Console.WriteLine($"{r0[j]} \t {v[j]} \t {res[^1]}");
-         //   }
-         //   Console.WriteLine("ended");
-         //   break;
-         //}
-
-         //var kek = r0 * v;
-         //if (kek == 0)
-         //{
-         //   break;
-         //}
          
          alpha = rho / (r0 * v);
 

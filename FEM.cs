@@ -171,6 +171,14 @@ public class FEM
                     }
                     
                 }
+
+                for (int i = 0; i < _grid.Edges.Length; i++)
+                {
+                    if (_grid.DirichletBoundaries.Contains(i))
+                    {
+                        _solution[i] = 0;
+                    }
+                }
                 
                 //foreach (var iGen in genNumber)
                 //{
@@ -286,27 +294,148 @@ public class FEM
                 //    //_solution[_grid.Elements[iGen][3]] = 1e-6;
                 //}
 
-                var A1 = GetValue(new Point3D(-10, 0.0, 30.0));
-                var A2 = GetValue(new Point3D(0.0, -10, 30.0));
-                var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
-                var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
-                
-                var A3 = GetValue(new Point3D(8, 0.0, 30.0));
-                var A4 = GetValue(new Point3D(0.0, 8, 30.0));
-                var modA3 = Math.Sqrt(Math.Pow(A3.X, 2) + Math.Pow(A3.Y, 2) + Math.Pow(A3.Z, 2));
-                var modA4 = Math.Sqrt(Math.Pow(A4.X, 2) + Math.Pow(A4.Y, 2) + Math.Pow(A4.Z, 2));
-                
-                var A5 = GetValue(new Point3D(-48, 0.0, -10.0));
-                var A6 = GetValue(new Point3D(0.0, -48, -10.0));
-                var modA5 = Math.Sqrt(Math.Pow(A5.X, 2) + Math.Pow(A5.Y, 2) + Math.Pow(A5.Z, 2));
-                var modA6 = Math.Sqrt(Math.Pow(A6.X, 2) + Math.Pow(A6.Y, 2) + Math.Pow(A6.Z, 2));
-                
-                var A7 = GetValue(new Point3D(29, 0.0, 5.0));
-                var A8 = GetValue(new Point3D(0.0, 29, 5.0));
-                var modA7 = Math.Sqrt(Math.Pow(A7.X, 2) + Math.Pow(A7.Y, 2) + Math.Pow(A7.Z, 2));
-                var modA8 = Math.Sqrt(Math.Pow(A8.X, 2) + Math.Pow(A8.Y, 2) + Math.Pow(A8.Z, 2));
+                //var A1 = GetValue(new Point3D(-10, 0.0, 30.0));
+                //var A2 = GetValue(new Point3D(0.0, -10, 30.0));
+                //var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
+                //var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
+                //
+                //var A3 = GetValue(new Point3D(8, 0.0, 30.0));
+                //var A4 = GetValue(new Point3D(0.0, 8, 30.0));
+                //var modA3 = Math.Sqrt(Math.Pow(A3.X, 2) + Math.Pow(A3.Y, 2) + Math.Pow(A3.Z, 2));
+                //var modA4 = Math.Sqrt(Math.Pow(A4.X, 2) + Math.Pow(A4.Y, 2) + Math.Pow(A4.Z, 2));
+                //
+                //var A5 = GetValue(new Point3D(-48, 0.0, -10.0));
+                //var A6 = GetValue(new Point3D(0.0, -48, -10.0));
+                //var modA5 = Math.Sqrt(Math.Pow(A5.X, 2) + Math.Pow(A5.Y, 2) + Math.Pow(A5.Z, 2));
+                //var modA6 = Math.Sqrt(Math.Pow(A6.X, 2) + Math.Pow(A6.Y, 2) + Math.Pow(A6.Z, 2));
+                //
+                //var A7 = GetValue(new Point3D(29, 0.0, 5.0));
+                //var A8 = GetValue(new Point3D(0.0, 29, 5.0));
+                //var modA7 = Math.Sqrt(Math.Pow(A7.X, 2) + Math.Pow(A7.Y, 2) + Math.Pow(A7.Z, 2));
+                //var modA8 = Math.Sqrt(Math.Pow(A8.X, 2) + Math.Pow(A8.Y, 2) + Math.Pow(A8.Z, 2));
                 
                 Vector.Copy(_solution, _layers[0]);
+
+                //List<List<double>> Bz = new List<List<double>>();
+                //List<List<double>> Ax = new List<List<double>>();
+                //List<List<double>> Ay = new List<List<double>>();
+                //
+                //Bz.Add(new List<double>());
+                //Bz.Add(new List<double>());
+                //Bz.Add(new List<double>());
+                
+                //Ax.Add(new List<double>());
+                //Ax.Add(new List<double>());
+                //Ax.Add(new List<double>());
+                //
+                //Ay.Add(new List<double>());
+                //Ay.Add(new List<double>());
+                //Ay.Add(new List<double>());
+
+                //var zo25 = new Point3D(-4975.0, 0.0, -25.0);
+                //var z0 = new Point3D(-4975.0, 0.0, 0);
+                //var z25 = new Point3D(-4975.0, 0.0, 25.0);
+                //
+                ////var zo25 = new Point3D(0.0, -4975.0, -25.0);
+                ////var z0 = new Point3D(0.0, -4975.0, 0);
+                ////var z25 = new Point3D(0.0, -4975.0, 25.0);
+
+                //double h = 25;
+
+                //while (zo25.X < 5000)
+                //{
+                //    var Ao25 = GetValue(zo25);
+                //    var A0 = GetValue(z0);
+                //    var A25 = GetValue(z25);
+                //    
+                //    Bz[0].Add(GetValueForRotAz(zo25));
+                //    Bz[1].Add(GetValueForRotAz(z0));
+                //    Bz[2].Add(GetValueForRotAz(z25));
+                //    
+                //    //Ax[0].Add(Ao25.X);
+                //    //Ax[1].Add(A0.X);
+                //    //Ax[2].Add(A25.X);
+                //    
+                //    //Ay[0].Add(Ao25.Y);
+                //    //Ay[1].Add(A0.Y);
+                //    //Ay[2].Add(A25.Y);
+
+                //    zo25.X += h;
+                //    z0.X += h;
+                //    z25.X += h;
+                //}
+
+                //using (var anime1 = new StreamWriter("Tests/Bz-25.txt"))
+                //{
+                //    foreach (var kek in Bz[0])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                //
+                //using (var anime1 = new StreamWriter("Tests/Bz0.txt"))
+                //{
+                //    foreach (var kek in Bz[1])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                //
+                //using (var anime1 = new StreamWriter("Tests/Bz25.txt"))
+                //{
+                //    foreach (var kek in Bz[2])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                
+                //using (var anime1 = new StreamWriter("Tests/Ax-25.txt"))
+                //{
+                //    foreach (var kek in Ax[0])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                //
+                //using (var anime1 = new StreamWriter("Tests/Ax0.txt"))
+                //{
+                //    foreach (var kek in Ax[1])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                //
+                //using (var anime1 = new StreamWriter("Tests/Ax25.txt"))
+                //{
+                //    foreach (var kek in Ax[2])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                
+                //using (var anime1 = new StreamWriter("Tests/Ay-25.txt"))
+                //{
+                //    foreach (var kek in Ay[0])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                //
+                //using (var anime1 = new StreamWriter("Tests/Ay0.txt"))
+                //{
+                //    foreach (var kek in Ay[1])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
+                //
+                //using (var anime1 = new StreamWriter("Tests/Ay25.txt"))
+                //{
+                //    foreach (var kek in Ay[2])
+                //    {
+                //        anime1.WriteLine(kek);
+                //    }
+                //}
                 
                 break;
             
@@ -339,29 +468,203 @@ public class FEM
 
                 //_solution = _globalMatrix * kek;
                 //break;
+
+                switch (_activeScheme)
+                {
+                    case Scheme.Two_layer_Implicit:
+                        _slae.SetSLAE(_globalVector, _globalMatrix, _layers[0]);
+                        
+                        break;
+                    
+                    case Scheme.Three_layer_Implicit:
+                        _slae.SetSLAE(_globalVector, _globalMatrix, _layers[1]);
+                        
+                        break;
+                    
+                    case Scheme.Four_layer_Implicit:
+                        _slae.SetSLAE(_globalVector, _globalMatrix, _layers[2]);
+                        
+                        break;
+                        
+                }
                 
-                _slae.SetSLAE(_globalVector, _globalMatrix);
                 _solution = _slae.Solve();
+                
+                List<List<double>> Bz = new List<List<double>>();
+                List<List<double>> Ax = new List<List<double>>();
+                List<List<double>> Ay = new List<List<double>>();
+                
+                Bz.Add(new List<double>());
+                Bz.Add(new List<double>());
+                Bz.Add(new List<double>());
+                
+                Ax.Add(new List<double>());
+                Ax.Add(new List<double>());
+                Ax.Add(new List<double>());
+                
+                Ay.Add(new List<double>());
+                Ay.Add(new List<double>());
+                Ay.Add(new List<double>());
+                
+                var zo25 = new Point3D(-4975.0, 0.0, -25.0);
+                var z0 = new Point3D(-4975.0, 0.0, 0);
+                var z25 = new Point3D(-4975.0, 0.0, 25.0);
+                
+                var zo25y = new Point3D(0.0, -4975.0, -25.0);
+                var z0y = new Point3D(0.0, -4975.0, 0);
+                var z25y = new Point3D(0.0, -4975.0, 25.0);
+
+                double h = 25;
+
+                while (zo25.X < 5000)
+                {
+                    var Ao25 = GetValue(zo25);
+                    var A0 = GetValue(z0);
+                    var A25 = GetValue(z25);
+                    
+                    Bz[0].Add(GetValueForRotAz(zo25));
+                    Bz[1].Add(GetValueForRotAz(z0));
+                    Bz[2].Add(GetValueForRotAz(z25));
+                    
+                    //Ax[0].Add(Ao25.X);
+                    //Ax[1].Add(A0.X);
+                    //Ax[2].Add(A25.X);
+                    
+                    Ay[0].Add(Ao25.Y);
+                    Ay[1].Add(A0.Y);
+                    Ay[2].Add(A25.Y);
+
+                    zo25.X += h;
+                    z0.X += h;
+                    z25.X += h;
+                }
+
+                while (zo25y.Y < 5000)
+                {
+                    var Ao25 = GetValue(zo25y);
+                    var A0 = GetValue(z0y);
+                    var A25 = GetValue(z25y);
+                    
+                    //Bz[0].Add(GetValueForRotAz(zo25));
+                    //Bz[1].Add(GetValueForRotAz(z0));
+                    //Bz[2].Add(GetValueForRotAz(z25));
+                    
+                    Ax[0].Add(Ao25.X);
+                    Ax[1].Add(A0.X);
+                    Ax[2].Add(A25.X);
+                    
+                    //Ay[0].Add(Ao25.Y);
+                    //Ay[1].Add(A0.Y);
+                    //Ay[2].Add(A25.Y);
+
+                    zo25y.Y += h;
+                    z0y.Y += h;
+                    z25y.Y += h;
+                }
+
+                using (var anime1 = new StreamWriter("Tests/1Bz-25.txt"))
+                {
+                    foreach (var kek in Bz[0])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Bz0.txt"))
+                {
+                    foreach (var kek in Bz[1])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Bz25.txt"))
+                {
+                    foreach (var kek in Bz[2])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Ax-25.txt"))
+                {
+                    foreach (var kek in Ax[0])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Ax0.txt"))
+                {
+                    foreach (var kek in Ax[1])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Ax25.txt"))
+                {
+                    foreach (var kek in Ax[2])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Ay-25.txt"))
+                {
+                    foreach (var kek in Ay[0])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Ay0.txt"))
+                {
+                    foreach (var kek in Ay[1])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
+                
+                using (var anime1 = new StreamWriter("Tests/1Ay25.txt"))
+                {
+                    foreach (var kek in Ay[2])
+                    {
+                        anime1.WriteLine(kek);
+                    }
+                }
 
                 //var kek = GetValue(new Point3D(0.0, 0.0, 30));
                 //var anime = CalculateEMF(new Point3D(0.25, 0.25, 30), itime);
-                var A1 = GetValue(new Point3D(2.5, 0.0, 0.0));
-                var A2 = GetValue(new Point3D(0.0, 2.5, 0.0));
-                var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
-                var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
+                var A1 = GetValue(new Point3D(0.0, 0.0, 25.0));
+                var A2 = GetValue(new Point3D(2.5, 0.0, 0.0));
+                var A3 = GetValue(new Point3D(0.0, 2.5, 0.0));
+                //var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
+                //var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
                 
                 
                 //Console.WriteLine($"{itime} = {_timeGrid[itime]} EMF = {CalculateEMF(new Point3D(0.1, 0.1, 30), itime)}");
                 Console.WriteLine($"{itime} = {_timeGrid[itime]} dBz = {CalculatedBz(new Point3D(0, 0, 25), itime)}");
+                Console.WriteLine($"modA1 = ({A1.X}, {A1.Y}, {A1.Z})\n" +
+                             $"modA2 = ({A2.X}, {A2.Y}, {A2.Z})\n" +
+                             $"modA3 = ({A3.X}, {A3.Y}, {A3.Z})\n");
+                sw.WriteLine($"{itime} {CalculatedBz(new Point3D(0, 0, 25), itime)}");
 
                 switch (_activeScheme)
                 {
                     case Scheme.Two_layer_Implicit:
                         if (_scheme == Scheme.Natural)
                         {
-                            _activeScheme = Scheme.Three_layer_Implicit;
+                            if (itime == 2)
+                            {
+                                _activeScheme = Scheme.Three_layer_Implicit;
+                                
+                                Vector.Copy(_solution, _layers[1]);
+                                
+                                break;
+                            }
                             
-                            Vector.Copy(_solution, _layers[1]);
+                            Vector.Copy(_solution, _layers[0]);
                         }
                         
                         else
@@ -934,6 +1237,38 @@ public class FEM
         vector1 /= dt;
         
         return vector1;
+    }
+
+    private double GetValueForRotAz(Point3D point)
+    {
+        var vector = new Vector3D(0, 0, 0);
+        var kek = new Point3D(0, 0, 0);
+        
+        foreach (var elem in _grid.Elements)
+        {
+            if (point.X >= _grid.Edges[elem[0]].Point0.X && point.X < _grid.Edges[elem[11]].Point1.X &&
+                point.Y >= _grid.Edges[elem[0]].Point0.Y && point.Y < _grid.Edges[elem[11]].Point1.Y &&
+                point.Z >= _grid.Edges[elem[0]].Point0.Z && point.Z < _grid.Edges[elem[11]].Point1.Z)
+            {
+                kek.X = (point.X - _grid.Edges[elem[0]].Point0.X) / _grid.Edges[elem[0]].Length;
+                kek.Y = (point.Y - _grid.Edges[elem[2]].Point0.Y) / _grid.Edges[elem[2]].Length;
+                kek.Z = (point.Z - _grid.Edges[elem[4]].Point0.Z) / _grid.Edges[elem[4]].Length;
+                
+                for (int i = 0; i < _basis.Size; i++)
+                {
+                    if (i is >= 4 and <= 7)
+                    {
+                        continue;
+                    }
+            
+                    vector += _basis.GetDPsi(i, kek) * _solution[elem[i]];
+                }
+                
+                break;
+            }
+        }
+
+        return vector.Y - vector.X;
     }
     
     private Vector3D GetValueForRotAdt(Point3D point, int ielem, int itime)

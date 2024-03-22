@@ -13,8 +13,8 @@ FEM fem = new FEM(grid, timeGrid);
 
 fem.SetTest(new Test1(grid));
 
-//fem.SetSolver(new BCGSTABLUSolver(1e-16, 1000));
-fem.SetSolver(new BCGSTABSolver(1e-14, 8000));
+//fem.SetSolver(new BCGSTABLUSolver(1e-14, 5000));
+fem.SetSolver(new BCGSTABSolver(1e-14, 5000));
 //fem.SetSolver(new LUSolver());
 
 fem.SetScheme(Scheme.Natural);

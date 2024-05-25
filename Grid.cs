@@ -26,6 +26,12 @@ public class Grid
     private readonly List<double> _yValues = new List<double>();
     private readonly List<double> _zValues = new List<double>();
 
+    public double GeneratorX;
+    public double GeneratorY;
+    public double GeneratorZ;
+    private double _receiver;
+    public double SourceValue;
+
     private List<int> _sumSteps;
 
     private List<List<Point3D>> NodeList = new List<List<Point3D>>();
@@ -303,27 +309,29 @@ public class Grid
             {
                 for (int j = 0; j < _sumSteps[0]; j++)
                 {
-                    // x
+                    // Bottom part
                     Elements[index][0] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i;
                     Elements[index][1] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * (i + 1);
-                    Elements[index][2] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges;
-                    Elements[index][3] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges + 1;
+                    Elements[index][4] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges;
+                    Elements[index][5] = j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + xEdges + 1;
                     
-                    Elements[index][4] =
+                    // Facet part
+                    Elements[index][8] =
                         j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice - _sumSteps[0] * i;
-                    Elements[index][5] =
+                    Elements[index][9] =
                         j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice + 1 - _sumSteps[0] * i;
-                    Elements[index][6] =
+                    Elements[index][10] =
                         j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice + nodesInRow -
                         _sumSteps[0] * i;
-                    Elements[index][7] =
+                    Elements[index][11] =
                         j + (nodesInSlice + edgesInSlice) * k + (xEdges + yEdges) * i + edgesInSlice + 1 +
                         nodesInRow - _sumSteps[0] * i;
 
-                    Elements[index][8] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i;
-                    Elements[index][9] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * (i + 1);
-                    Elements[index][10] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i + xEdges;
-                    Elements[index++][11] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i + xEdges + 1;
+                    // Upper part
+                    Elements[index][2] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i;
+                    Elements[index][3] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * (i + 1);
+                    Elements[index][6] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i + xEdges;
+                    Elements[index++][7] = j + (nodesInSlice + edgesInSlice) * (k + 1) + (xEdges + yEdges) * i + xEdges + 1;
                 }
             }
         }
@@ -334,7 +342,7 @@ public class Grid
         for (int i = 0; i < _zones.Length; i++)
         {
             if (point.X <= _xZones[_zones[i][1]] && point.Y <= _yZones[_zones[i][3]] && point.Z <= _zZones[_zones[i][5]] &&
-                point.X > _xZones[_zones[i][0]] && point.Y > _yZones[_zones[i][2]] && point.Z > _zZones[_zones[i][4]])
+                point.X >= _xZones[_zones[i][0]] && point.Y >= _yZones[_zones[i][2]] && point.Z >= _zZones[_zones[i][4]])
             {
                 return _sigmaValues[i];
             }
@@ -386,43 +394,43 @@ public class Grid
             case ElementSide.Bottom:
                 DirichletBoundaries.Add(Elements[ielem][0]);
                 DirichletBoundaries.Add(Elements[ielem][1]);
-                DirichletBoundaries.Add(Elements[ielem][2]);
-                DirichletBoundaries.Add(Elements[ielem][3]);
+                DirichletBoundaries.Add(Elements[ielem][4]);
+                DirichletBoundaries.Add(Elements[ielem][5]);
                 break;
             
             case ElementSide.Upper:
-                DirichletBoundaries.Add(Elements[ielem][8]);
-                DirichletBoundaries.Add(Elements[ielem][9]);
-                DirichletBoundaries.Add(Elements[ielem][10]);
-                DirichletBoundaries.Add(Elements[ielem][11]);
+                DirichletBoundaries.Add(Elements[ielem][2]);
+                DirichletBoundaries.Add(Elements[ielem][3]);
+                DirichletBoundaries.Add(Elements[ielem][6]);
+                DirichletBoundaries.Add(Elements[ielem][7]);
                 break;
             
             case ElementSide.Left:
-                DirichletBoundaries.Add(Elements[ielem][2]);
                 DirichletBoundaries.Add(Elements[ielem][4]);
-                DirichletBoundaries.Add(Elements[ielem][6]);
+                DirichletBoundaries.Add(Elements[ielem][8]);
                 DirichletBoundaries.Add(Elements[ielem][10]);
+                DirichletBoundaries.Add(Elements[ielem][6]);
                 break;
                 
             case ElementSide.Right:
-                DirichletBoundaries.Add(Elements[ielem][3]);
                 DirichletBoundaries.Add(Elements[ielem][5]);
-                DirichletBoundaries.Add(Elements[ielem][7]);
+                DirichletBoundaries.Add(Elements[ielem][9]);
                 DirichletBoundaries.Add(Elements[ielem][11]);
+                DirichletBoundaries.Add(Elements[ielem][7]);
                 break;
             
             case ElementSide.Front:
                 DirichletBoundaries.Add(Elements[ielem][0]);
-                DirichletBoundaries.Add(Elements[ielem][4]);
-                DirichletBoundaries.Add(Elements[ielem][5]);
                 DirichletBoundaries.Add(Elements[ielem][8]);
+                DirichletBoundaries.Add(Elements[ielem][9]);
+                DirichletBoundaries.Add(Elements[ielem][2]);
                 break;
             
             case ElementSide.Rear:
                 DirichletBoundaries.Add(Elements[ielem][1]);
-                DirichletBoundaries.Add(Elements[ielem][6]);
-                DirichletBoundaries.Add(Elements[ielem][7]);
-                DirichletBoundaries.Add(Elements[ielem][9]);
+                DirichletBoundaries.Add(Elements[ielem][10]);
+                DirichletBoundaries.Add(Elements[ielem][11]);
+                DirichletBoundaries.Add(Elements[ielem][3]);
                 break;
         }
     }

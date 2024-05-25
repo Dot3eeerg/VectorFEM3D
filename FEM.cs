@@ -6,9 +6,9 @@ public class FEM
     private Vector? _globalVector;
     private Vector[]? _layers;
     private Vector? _solution;
-    private Vector? _localVector;
-    private Matrix? _stiffnessMatrix;
-    private Matrix? _massMatrix;
+    //private Vector? _localVector;
+    //private Matrix? _stiffnessMatrix;
+    //private Matrix? _massMatrix;
     private Grid? _grid;
     private ITimeGrid _timeGrid;
     private Test? _test;
@@ -17,11 +17,15 @@ public class FEM
     private SLAE? _slae;
     private Scheme _scheme;
     private Scheme _activeScheme;
+
+    private ElementAssembler _elementAssembler;
     //private Generator _generator = new Generator(-100, -100, 25, 100, 100, 25);
     private Generator _generator = new Generator(-100, -100, 25, 100, 100, 25);
     
     private const double _mu0 = 1.25653706212 * 10e-6;
     //private const double _mu0 = 4 * Math.PI * 10e-7;
+
+    private Point3D[] _elementPointList;
 
     public FEM(Grid grid, ITimeGrid timeGrid)
     {
@@ -29,9 +33,11 @@ public class FEM
         _timeGrid = timeGrid;
         _basis = new TriLinearVectorBasis();
         _integration = new Integration(new SegmentGaussOrder9());
-        _stiffnessMatrix = new(_basis.Size);
-        _massMatrix = new(_basis.Size);
-        _localVector = new(_basis.Size);
+        //_stiffnessMatrix = new(_basis.Size);
+        //_massMatrix = new(_basis.Size);
+        //_localVector = new(_basis.Size);
+        _elementPointList = new Point3D[_basis.Size];
+        _elementAssembler = new ElementAssembler(_basis);
     }
 
     public void SetTest(Test test)
@@ -61,381 +67,109 @@ public class FEM
         {
             case Scheme.Natural:
                 itime = 0;
+                
+                AssemblySLAE(itime);
+                AccountDirichletBoundaries(itime);
+                _slae.SetSLAE(_globalVector, _globalMatrix, _solution);
+                _solution = _slae.Solve();
 
                 _activeScheme = Scheme.Two_layer_Implicit;
                 itime++;
                 
-                var genNumber = FindElementNumberForGenerator();
-                //HashSet<int> genEdges = new HashSet<int>();
-                //HashSet<int> genSkip = new HashSet<int>();
-                //foreach (var gen in genNumber)
+                //var hx = 5;
+                //var hy = 5;
+                //double delta = 1e-10;
+                //
+                //var stepsX = _generator.Length / hx;
+                //var stepsY = _generator.Width / hy;
+
+                //for (int i = 0; i < _grid.Edges.Length; i++)
                 //{
-                //    for (int iedge = 0; iedge < 4; iedge++)
+                //    double point;
+                //    double len1;
+                //    double len2;
+                //    
+                //    switch (_grid.Edges[i].GetAxis())
                 //    {
+                //        case 0:
+                //            point = _generator.xStart + hx / 2.0;
+                //            
+                //            for (int j = 0; j < stepsX; j++)
+                //            {
+                //                len1 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                //                                 Math.Pow(_generator.yStart - _grid.Edges[i].Point.Y, 2) +
+                //                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+                //                
+                //                if (len1 < 1e-10)
+                //                {
+                //                    len1 = delta;
+                //                }
+
+                //                len2 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
+                //                                 Math.Pow(_generator.yEnd - _grid.Edges[i].Point.Y, 2) +
+                //                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+                //                
+                //                if (len2 < 1e-10)
+                //                {
+                //                    len2 = delta;
+                //                }
+                //                
+                //                _solution[i] += _mu0 / (4 * Math.PI) * hx / len1;
+                //                _solution[i] += -_mu0 / (4 * Math.PI) * hx / len2;
+                //                
+                //                point += hx;
+                //            }
+
+                //            break;
                 //        
-                //        if ((_grid.Edges[_grid.Elements[gen][iedge]].Point0.X < _generator.xStart ||
-                //             _grid.Edges[_grid.Elements[gen][iedge]].Point1.X > _generator.xEnd) &&
-                //            (_grid.Edges[_grid.Elements[gen][iedge]].Point0.Y < _generator.yStart ||
-                //             _grid.Edges[_grid.Elements[gen][iedge]].Point1.Y > _generator.yEnd))
-                //        {
-                //            genEdges.Add(_grid.Elements[gen][iedge]);
-                //        }
-                //        else
-                //        {
-                //            genSkip.Add(_grid.Elements[gen][iedge]);
-                //        }
+                //        case 1:
+                //            point = _generator.yStart + hy / 2.0;
+                //            
+                //            for (int j = 0; j < stepsY; j++)
+                //            {
+                //                len1 = Math.Sqrt(
+                //                    Math.Pow(_generator.xEnd - _grid.Edges[i].Point.X, 2) +
+                //                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                //                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+
+                //                if (len1 < 1e-10)
+                //                {
+                //                    len1 = delta;
+                //                }
+
+                //                len2 = Math.Sqrt(
+                //                    Math.Pow(_generator.xStart - _grid.Edges[i].Point.X, 2) +
+                //                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
+                //                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
+
+                //                if (len2 < 1e-10)
+                //                {
+                //                    len2 = delta;
+                //                }
+                //                
+                //                _solution[i] += _mu0 / (4 * Math.PI) * hy / len1;
+                //                _solution[i] += -_mu0 / (4 * Math.PI) * hy / len2;
+                //                
+                //                point += hy;
+                //            }
+                //            
+                //            break;
+                //        
+                //        case 2:
+                //            break;
                 //    }
+                //    
                 //}
-                
-                var hx = 5;
-                var hy = 5;
-                double delta = 1e-10;
-                
-                var stepsX = _generator.Length / hx;
-                var stepsY = _generator.Width / hy;
 
-                for (int i = 0; i < _grid.Edges.Length; i++)
-                {
-                    double point;
-                    double len1;
-                    double len2;
-                    
-                    switch (_grid.Edges[i].GetAxis())
-                    {
-                        case 0:
-                            point = _generator.xStart + hx / 2.0;
-                            
-                            for (int j = 0; j < stepsX; j++)
-                            {
-                                len1 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                                                 Math.Pow(_generator.yStart - _grid.Edges[i].Point.Y, 2) +
-                                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-                                
-                                if (len1 < 1e-10)
-                                {
-                                    len1 = delta;
-                                }
-
-                                len2 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                                                 Math.Pow(_generator.yEnd - _grid.Edges[i].Point.Y, 2) +
-                                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-                                
-                                if (len2 < 1e-10)
-                                {
-                                    len2 = delta;
-                                }
-                                
-                                _solution[i] += _mu0 / (4 * Math.PI) * hx / len1;
-                                _solution[i] += -_mu0 / (4 * Math.PI) * hx / len2;
-                                
-                                point += hx;
-                            }
-
-                            break;
-                        
-                        case 1:
-                            point = _generator.yStart + hy / 2.0;
-                            
-                            for (int j = 0; j < stepsY; j++)
-                            {
-                                len1 = Math.Sqrt(
-                                    Math.Pow(_generator.xEnd - _grid.Edges[i].Point.X, 2) +
-                                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-
-                                if (len1 < 1e-10)
-                                {
-                                    len1 = delta;
-                                }
-
-                                len2 = Math.Sqrt(
-                                    Math.Pow(_generator.xStart - _grid.Edges[i].Point.X, 2) +
-                                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-
-                                if (len2 < 1e-10)
-                                {
-                                    len2 = delta;
-                                }
-                                
-                                _solution[i] += _mu0 / (4 * Math.PI) * hy / len1;
-                                _solution[i] += -_mu0 / (4 * Math.PI) * hy / len2;
-                                
-                                point += hy;
-                            }
-                            
-                            break;
-                        
-                        case 2:
-                            break;
-                    }
-                    
-                }
-
-                for (int i = 0; i < _grid.Edges.Length; i++)
-                {
-                    if (_grid.DirichletBoundaries.Contains(i))
-                    {
-                        _solution[i] = 0;
-                    }
-                }
-                
-                //foreach (var iGen in genNumber)
+                //for (int i = 0; i < _grid.Edges.Length; i++)
                 //{
-                //    stepsX = (_grid.Edges[_grid.Elements[iGen][11]].Point1.X -
-                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.X) / hx;
-                //    stepsY = (_grid.Edges[_grid.Elements[iGen][11]].Point1.Y -
-                //             _grid.Edges[_grid.Elements[iGen][0]].Point0.Y) / hy;
-                //    
-
-                //    for (int i = 0; i < _grid.Edges.Length; i++)
+                //    if (_grid.DirichletBoundaries.Contains(i))
                 //    {
-                //        var sum1 = 0;
-                //        var sum2 = 0;
-                //        double point = 0;
-                //        if (i == _grid.Elements[iGen][0] || i == _grid.Elements[iGen][1] || i == _grid.Elements[iGen][2] || i == _grid.Elements[iGen][3])
-                //        {
-                //            delta = 1e-10;
-                //        }
-                //        else
-                //        {
-                //            delta = 0;
-                //        }
-
-                //        switch (_grid.Edges[i].GetAxis())
-                //        {
-                //            case 0:
-                //                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.X + hx / 2.0;
-                //                
-                //                for (int j = 0; j < stepsX; j++)
-                //                {
-                //                    var tm1 = _mu0 / (4 * Math.PI) * hx / (Math.Sqrt(
-                //                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                //                        Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Y - _grid.Edges[i].Point.Y,
-                //                            2) + Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][0]].Point0.Z - _grid.Edges[i].Point.Z,
-                //                            2)) + delta);
-                //                    _solution[i] += tm1;
-                //                    
-                //                    var tm2 = -_mu0 / (4 * Math.PI) * hx / (Math.Sqrt(
-                //                        Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                //                        Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Y - _grid.Edges[i].Point.Y,
-                //                            2) + Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][1]].Point0.Z - _grid.Edges[i].Point.Z,
-                //                            2)) + delta);
-                //                    _solution[i] += tm2;
-                //                    //if (i == 13104)
-                //                    //{
-                //                    //    Console.WriteLine($"{tm1} {tm2}");
-                //                    //    //Console.WriteLine($"{} \t {} \t {}");
-                //                    //}
-                //                    
-                //                    
-                //                    point += hx;
-                //                }
-
-                //                //if (i == 13104)
-                //                //{
-                //                //    Console.WriteLine($"{tm1} {tm2}");
-                //                //}
-                //                
-                //                break;
-                //            
-                //            case 1:
-                //                point = _grid.Edges[_grid.Elements[iGen][0]].Point0.Y + hy / 2.0;
-                //                
-                //                for (int j = 0; j < stepsY; j++)
-                //                {
-                //                    var t1 = _mu0 / (4 * Math.PI) * hy / (Math.Sqrt(
-                //                        Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][3]].Point0.X - _grid.Edges[i].Point.X,
-                //                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                //                        Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][3]].Point0.Z - _grid.Edges[i].Point.Z,
-                //                            2)) + delta);
-                //                    
-                //                    _solution[i] += t1;
-                //                    
-                //                    var t2 = -_mu0 / (4 * Math.PI) * hy / (Math.Sqrt(
-                //                        Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][2]].Point0.X - _grid.Edges[i].Point.X,
-                //                            2) + Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                //                        Math.Pow(
-                //                            _grid.Edges[_grid.Elements[iGen][2]].Point0.Z - _grid.Edges[i].Point.Z,
-                //                            2)) + delta);
-                //                    
-                //                    _solution[i] += t2;
-                //                    
-                //                    //if (i == 13125)
-                //                    //{
-                //                    //    Console.WriteLine($"{t1} {t2}");
-                //                    //    Console.WriteLine($"{Math.Pow(
-                //                    //        _grid.Edges[_grid.Elements[iGen][2]].Point0.X - _grid.Edges[i].Point.X,
-                //                    //        2)} \t {Math.Pow(point - _grid.Edges[i].Point.Y, 2)} \t {Math.Pow(
-                //                    //        _grid.Edges[_grid.Elements[iGen][2]].Point0.Z - _grid.Edges[i].Point.Z,
-                //                    //        2)}");
-                //                    //}
-                //                    
-                //                    point += hy;
-                //                }
-                //                
-                //                break;
-                //            
-                //            case 2:
-                //                break;
-                //        }
+                //        _solution[i] = 0;
                 //    }
-                //    
-                //    //_solution[_grid.Elements[iGen][0]] = 1e-6;
-                //    //_solution[_grid.Elements[iGen][1]] = -1e-6;
-                //    //_solution[_grid.Elements[iGen][2]] = -1e-6;
-                //    //_solution[_grid.Elements[iGen][3]] = 1e-6;
                 //}
-
-                //var A1 = GetValue(new Point3D(-10, 0.0, 30.0));
-                //var A2 = GetValue(new Point3D(0.0, -10, 30.0));
-                //var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
-                //var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
-                //
-                //var A3 = GetValue(new Point3D(8, 0.0, 30.0));
-                //var A4 = GetValue(new Point3D(0.0, 8, 30.0));
-                //var modA3 = Math.Sqrt(Math.Pow(A3.X, 2) + Math.Pow(A3.Y, 2) + Math.Pow(A3.Z, 2));
-                //var modA4 = Math.Sqrt(Math.Pow(A4.X, 2) + Math.Pow(A4.Y, 2) + Math.Pow(A4.Z, 2));
-                //
-                //var A5 = GetValue(new Point3D(-48, 0.0, -10.0));
-                //var A6 = GetValue(new Point3D(0.0, -48, -10.0));
-                //var modA5 = Math.Sqrt(Math.Pow(A5.X, 2) + Math.Pow(A5.Y, 2) + Math.Pow(A5.Z, 2));
-                //var modA6 = Math.Sqrt(Math.Pow(A6.X, 2) + Math.Pow(A6.Y, 2) + Math.Pow(A6.Z, 2));
-                //
-                //var A7 = GetValue(new Point3D(29, 0.0, 5.0));
-                //var A8 = GetValue(new Point3D(0.0, 29, 5.0));
-                //var modA7 = Math.Sqrt(Math.Pow(A7.X, 2) + Math.Pow(A7.Y, 2) + Math.Pow(A7.Z, 2));
-                //var modA8 = Math.Sqrt(Math.Pow(A8.X, 2) + Math.Pow(A8.Y, 2) + Math.Pow(A8.Z, 2));
                 
                 Vector.Copy(_solution, _layers[0]);
-
-                //List<List<double>> Bz = new List<List<double>>();
-                //List<List<double>> Ax = new List<List<double>>();
-                //List<List<double>> Ay = new List<List<double>>();
-                //
-                //Bz.Add(new List<double>());
-                //Bz.Add(new List<double>());
-                //Bz.Add(new List<double>());
-                
-                //Ax.Add(new List<double>());
-                //Ax.Add(new List<double>());
-                //Ax.Add(new List<double>());
-                //
-                //Ay.Add(new List<double>());
-                //Ay.Add(new List<double>());
-                //Ay.Add(new List<double>());
-
-                //var zo25 = new Point3D(-4975.0, 0.0, -25.0);
-                //var z0 = new Point3D(-4975.0, 0.0, 0);
-                //var z25 = new Point3D(-4975.0, 0.0, 25.0);
-                //
-                ////var zo25 = new Point3D(0.0, -4975.0, -25.0);
-                ////var z0 = new Point3D(0.0, -4975.0, 0);
-                ////var z25 = new Point3D(0.0, -4975.0, 25.0);
-
-                //double h = 25;
-
-                //while (zo25.X < 5000)
-                //{
-                //    var Ao25 = GetValue(zo25);
-                //    var A0 = GetValue(z0);
-                //    var A25 = GetValue(z25);
-                //    
-                //    Bz[0].Add(GetValueForRotAz(zo25));
-                //    Bz[1].Add(GetValueForRotAz(z0));
-                //    Bz[2].Add(GetValueForRotAz(z25));
-                //    
-                //    //Ax[0].Add(Ao25.X);
-                //    //Ax[1].Add(A0.X);
-                //    //Ax[2].Add(A25.X);
-                //    
-                //    //Ay[0].Add(Ao25.Y);
-                //    //Ay[1].Add(A0.Y);
-                //    //Ay[2].Add(A25.Y);
-
-                //    zo25.X += h;
-                //    z0.X += h;
-                //    z25.X += h;
-                //}
-
-                //using (var anime1 = new StreamWriter("Tests/Bz-25.txt"))
-                //{
-                //    foreach (var kek in Bz[0])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                //
-                //using (var anime1 = new StreamWriter("Tests/Bz0.txt"))
-                //{
-                //    foreach (var kek in Bz[1])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                //
-                //using (var anime1 = new StreamWriter("Tests/Bz25.txt"))
-                //{
-                //    foreach (var kek in Bz[2])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                
-                //using (var anime1 = new StreamWriter("Tests/Ax-25.txt"))
-                //{
-                //    foreach (var kek in Ax[0])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                //
-                //using (var anime1 = new StreamWriter("Tests/Ax0.txt"))
-                //{
-                //    foreach (var kek in Ax[1])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                //
-                //using (var anime1 = new StreamWriter("Tests/Ax25.txt"))
-                //{
-                //    foreach (var kek in Ax[2])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                
-                //using (var anime1 = new StreamWriter("Tests/Ay-25.txt"))
-                //{
-                //    foreach (var kek in Ay[0])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                //
-                //using (var anime1 = new StreamWriter("Tests/Ay0.txt"))
-                //{
-                //    foreach (var kek in Ay[1])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
-                //
-                //using (var anime1 = new StreamWriter("Tests/Ay25.txt"))
-                //{
-                //    foreach (var kek in Ay[2])
-                //    {
-                //        anime1.WriteLine(kek);
-                //    }
-                //}
                 
                 break;
             
@@ -453,13 +187,13 @@ public class FEM
         }
         
 
-        using (var sw = new StreamWriter("Tests/5.csv"))
+        using (var sw = new StreamWriter("Tests/Graphs/EMFResults"))
         {
             for ( ; itime < _timeGrid.TGrid.Length; itime++)
             {
                 AssemblySLAE(itime);
                 AccountDirichletBoundaries(itime);
-
+                
                 //Vector kek = new Vector(_globalVector.Length);
                 //for (int i = 0; i < kek.Length; i++)
                 //{
@@ -467,6 +201,11 @@ public class FEM
                 //}
 
                 //_solution = _globalMatrix * kek;
+
+                //for (int i = 0; i < _solution.Length; i++)
+                //{
+                //    Console.Write($"{_solution[i] - _globalVector[i]}\t");
+                //}
                 //break;
 
                 switch (_activeScheme)
@@ -478,6 +217,7 @@ public class FEM
                     
                     case Scheme.Three_layer_Implicit:
                         _slae.SetSLAE(_globalVector, _globalMatrix, _layers[1]);
+                        //_slae.SetSLAE(_globalVector, _globalMatrix, _solution);
                         
                         break;
                     
@@ -489,166 +229,7 @@ public class FEM
                 }
                 
                 _solution = _slae.Solve();
-                
-                List<List<double>> Bz = new List<List<double>>();
-                List<List<double>> Ax = new List<List<double>>();
-                List<List<double>> Ay = new List<List<double>>();
-                
-                Bz.Add(new List<double>());
-                Bz.Add(new List<double>());
-                Bz.Add(new List<double>());
-                
-                Ax.Add(new List<double>());
-                Ax.Add(new List<double>());
-                Ax.Add(new List<double>());
-                
-                Ay.Add(new List<double>());
-                Ay.Add(new List<double>());
-                Ay.Add(new List<double>());
-                
-                var zo25 = new Point3D(-4975.0, 0.0, -25.0);
-                var z0 = new Point3D(-4975.0, 0.0, 0);
-                var z25 = new Point3D(-4975.0, 0.0, 25.0);
-                
-                var zo25y = new Point3D(0.0, -4975.0, -25.0);
-                var z0y = new Point3D(0.0, -4975.0, 0);
-                var z25y = new Point3D(0.0, -4975.0, 25.0);
-
-                double h = 25;
-
-                while (zo25.X < 5000)
-                {
-                    var Ao25 = GetValue(zo25);
-                    var A0 = GetValue(z0);
-                    var A25 = GetValue(z25);
-                    
-                    Bz[0].Add(GetValueForRotAz(zo25));
-                    Bz[1].Add(GetValueForRotAz(z0));
-                    Bz[2].Add(GetValueForRotAz(z25));
-                    
-                    //Ax[0].Add(Ao25.X);
-                    //Ax[1].Add(A0.X);
-                    //Ax[2].Add(A25.X);
-                    
-                    Ay[0].Add(Ao25.Y);
-                    Ay[1].Add(A0.Y);
-                    Ay[2].Add(A25.Y);
-
-                    zo25.X += h;
-                    z0.X += h;
-                    z25.X += h;
-                }
-
-                while (zo25y.Y < 5000)
-                {
-                    var Ao25 = GetValue(zo25y);
-                    var A0 = GetValue(z0y);
-                    var A25 = GetValue(z25y);
-                    
-                    //Bz[0].Add(GetValueForRotAz(zo25));
-                    //Bz[1].Add(GetValueForRotAz(z0));
-                    //Bz[2].Add(GetValueForRotAz(z25));
-                    
-                    Ax[0].Add(Ao25.X);
-                    Ax[1].Add(A0.X);
-                    Ax[2].Add(A25.X);
-                    
-                    //Ay[0].Add(Ao25.Y);
-                    //Ay[1].Add(A0.Y);
-                    //Ay[2].Add(A25.Y);
-
-                    zo25y.Y += h;
-                    z0y.Y += h;
-                    z25y.Y += h;
-                }
-
-                using (var anime1 = new StreamWriter("Tests/1Bz-25.txt"))
-                {
-                    foreach (var kek in Bz[0])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Bz0.txt"))
-                {
-                    foreach (var kek in Bz[1])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Bz25.txt"))
-                {
-                    foreach (var kek in Bz[2])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Ax-25.txt"))
-                {
-                    foreach (var kek in Ax[0])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Ax0.txt"))
-                {
-                    foreach (var kek in Ax[1])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Ax25.txt"))
-                {
-                    foreach (var kek in Ax[2])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Ay-25.txt"))
-                {
-                    foreach (var kek in Ay[0])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Ay0.txt"))
-                {
-                    foreach (var kek in Ay[1])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-                
-                using (var anime1 = new StreamWriter("Tests/1Ay25.txt"))
-                {
-                    foreach (var kek in Ay[2])
-                    {
-                        anime1.WriteLine(kek);
-                    }
-                }
-
-                //var kek = GetValue(new Point3D(0.0, 0.0, 30));
-                //var anime = CalculateEMF(new Point3D(0.25, 0.25, 30), itime);
-                var A1 = GetValue(new Point3D(0.0, 0.0, 25.0));
-                var A2 = GetValue(new Point3D(2.5, 0.0, 0.0));
-                var A3 = GetValue(new Point3D(0.0, 2.5, 0.0));
-                //var modA1 = Math.Sqrt(Math.Pow(A1.X, 2) + Math.Pow(A1.Y, 2) + Math.Pow(A1.Z, 2));
-                //var modA2 = Math.Sqrt(Math.Pow(A2.X, 2) + Math.Pow(A2.Y, 2) + Math.Pow(A2.Z, 2));
-                
-                
-                //Console.WriteLine($"{itime} = {_timeGrid[itime]} EMF = {CalculateEMF(new Point3D(0.1, 0.1, 30), itime)}");
-                Console.WriteLine($"{itime} = {_timeGrid[itime]} dBz = {CalculatedBz(new Point3D(0, 0, 25), itime)}");
-                Console.WriteLine($"modA1 = ({A1.X}, {A1.Y}, {A1.Z})\n" +
-                             $"modA2 = ({A2.X}, {A2.Y}, {A2.Z})\n" +
-                             $"modA3 = ({A3.X}, {A3.Y}, {A3.Z})\n");
-                sw.WriteLine($"{itime} {CalculatedBz(new Point3D(0, 0, 25), itime)}");
+                PrintError(itime);
 
                 switch (_activeScheme)
                 {
@@ -676,10 +257,6 @@ public class FEM
                     case Scheme.Three_layer_Implicit:
                         if (_scheme == Scheme.Natural)
                         {
-                            //_activeScheme = Scheme.Four_layer_Implicit;
-                            
-                            //Vector.Copy(_solution, _layers[2]);
-                            
                             Vector.Copy(_layers[1], _layers[0]);
                             Vector.Copy(_solution, _layers[1]);
                         }
@@ -698,25 +275,6 @@ public class FEM
                         Vector.Copy(_solution, _layers[2]);
                         break;
                 }
-                
-                //double error = 0;
-                //for (int i = 0; i < _grid.Edges.Length; i++)
-                //{
-                //    error += Math.Pow(
-                //        _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
-                //}
-                //PrintError(itime);
-                //sw.WriteLine($"{_timeGrid[itime]},{Math.Sqrt(error / _grid.Edges.Length)}");
-
-                //for (int i = 0; i < _grid.Edges.Length; i++)
-                //{
-                //    sw.WriteLine(
-                //        $"{i + 1},{_solution[i]},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis())},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis()) - _solution[i]}");
-                //    
-                //    Console.WriteLine(
-                //        $"{i + 1},{_solution[i]},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis())},{_test.UValue(_grid.Edges[i].Point, _timeGrid[0], _grid.Edges[i].GetAxis()) - _solution[i]}");
-                //}
-                //break;
             }
         }
     }
@@ -732,22 +290,18 @@ public class FEM
 
             if (_activeScheme != Scheme.Natural)
             {
-                _stiffnessMatrix += SchemeUsage(ielem, itime, _activeScheme, 0) * _massMatrix;
+                _elementAssembler.StiffnessMatrix += SchemeUsage(ielem, itime, _activeScheme, 0) * _elementAssembler.MassMatrix;
             }
 
             for (int i = 0; i < _basis.Size; i++)
             {
                 for (int j = 0; j < _basis.Size; j++)
                 {
-                    AddElement(_grid.Elements[ielem][i], _grid.Elements[ielem][j], _stiffnessMatrix[i, j]);
+                    AddElement(_grid.Elements[ielem][i], _grid.Elements[ielem][j], _elementAssembler.StiffnessMatrix[i, j]);
                 }
             }
             
             AssemblyGlobalVector(ielem, itime);
-            
-            _stiffnessMatrix.Clear();
-            _massMatrix.Clear();
-            _localVector.Fill(0);
         }
     }
 
@@ -780,16 +334,16 @@ public class FEM
                 {
                     for (int j = 0; j < _basis.Size; j++)
                     {
-                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
+                        qj1[i] += _elementAssembler.MassMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
                     }
 
                 }
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj1[i];
+                    _elementAssembler.LocalVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj1[i];
 
-                    _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+                    _globalVector[_grid.Elements[ielem][i]] += _elementAssembler.LocalVector[i];
                 }
                 
                 break;
@@ -800,17 +354,17 @@ public class FEM
                 {
                     for (int j = 0; j < _basis.Size; j++)
                     {
-                        qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][j]];
-                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
+                        qj2[i] += _elementAssembler.MassMatrix[i, j] * _layers[1][_grid.Elements[ielem][j]];
+                        qj1[i] += _elementAssembler.MassMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
                     }
                 }
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj2[i];
-                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 2) * qj1[i];
+                    _elementAssembler.LocalVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj2[i];
+                    _elementAssembler.LocalVector[i] += SchemeUsage(ielem, itime, _activeScheme, 2) * qj1[i];
                     
-                    _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+                    _globalVector[_grid.Elements[ielem][i]] += _elementAssembler.LocalVector[i];
                 }
                 
                 break;
@@ -821,19 +375,19 @@ public class FEM
                 {
                     for (int j = 0; j < _basis.Size; j++)
                     {
-                        qj3[i] += _massMatrix[i, j] * _layers[2][_grid.Elements[ielem][j]];
-                        qj2[i] += _massMatrix[i, j] * _layers[1][_grid.Elements[ielem][j]];
-                        qj1[i] += _massMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
+                        qj3[i] += _elementAssembler.MassMatrix[i, j] * _layers[2][_grid.Elements[ielem][j]];
+                        qj2[i] += _elementAssembler.MassMatrix[i, j] * _layers[1][_grid.Elements[ielem][j]];
+                        qj1[i] += _elementAssembler.MassMatrix[i, j] * _layers[0][_grid.Elements[ielem][j]];
                     }
                 }
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
-                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj3[i];
-                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 2) * qj2[i];
-                    _localVector[i] += SchemeUsage(ielem, itime, _activeScheme, 3) * qj1[i];
+                    _elementAssembler.LocalVector[i] += SchemeUsage(ielem, itime, _activeScheme, 1) * qj3[i];
+                    _elementAssembler.LocalVector[i] += SchemeUsage(ielem, itime, _activeScheme, 2) * qj2[i];
+                    _elementAssembler.LocalVector[i] += SchemeUsage(ielem, itime, _activeScheme, 3) * qj1[i];
                     
-                    _globalVector[_grid.Elements[ielem][i]] += _localVector[i];
+                    _globalVector[_grid.Elements[ielem][i]] += _elementAssembler.LocalVector[i];
                 }
                 
                 break;
@@ -842,32 +396,53 @@ public class FEM
 
     private void AddElement(int i, int j, double value)
     {
-        if (i == j)
+        if (_globalMatrix.Symmetric)
         {
-            _globalMatrix.Di[i] += value;
-            return;
-        }
+            if (i == j)
+            {
+                _globalMatrix.Di[i] += value;
+                return;
+            }
 
-        if (i > j)
-        {
             for (int icol = _globalMatrix.Ig[i]; icol < _globalMatrix.Ig[i + 1]; icol++)
             {
                 if (_globalMatrix.Jg[icol] == j)
                 {
-                    _globalMatrix.Ggl[icol] += value;
+                    _globalMatrix.Gg[icol] += value;
                     return;
                 }
             }
         }
-
+        
         else
         {
-            for (int icol = _globalMatrix.Ig[j]; icol < _globalMatrix.Ig[j + 1]; icol++)
+            if (i == j)
             {
-                if (_globalMatrix.Jg[icol] == i)
+                _globalMatrix.Di[i] += value;
+                return;
+            }
+
+            if (i > j)
+            {
+                for (int icol = _globalMatrix.Ig[i]; icol < _globalMatrix.Ig[i + 1]; icol++)
                 {
-                    _globalMatrix.Ggu[icol] += value;
-                    return;
+                    if (_globalMatrix.Jg[icol] == j)
+                    {
+                        _globalMatrix.Ggl[icol] += value;
+                        return;
+                    }
+                }
+            }
+
+            else
+            {
+                for (int icol = _globalMatrix.Ig[j]; icol < _globalMatrix.Ig[j + 1]; icol++)
+                {
+                    if (_globalMatrix.Jg[icol] == i)
+                    {
+                        _globalMatrix.Ggu[icol] += value;
+                        return;
+                    }
                 }
             }
         }
@@ -875,70 +450,112 @@ public class FEM
 
     private void AssemblyLocalElement(int ielem, int itime)
     {
-        double hx = _grid.Edges[_grid.Elements[ielem][0]].Length;
-        double hy = _grid.Edges[_grid.Elements[ielem][2]].Length;
-        double hz = _grid.Edges[_grid.Elements[ielem][4]].Length;
-
         for (int i = 0; i < _basis.Size; i++)
         {
-            for (int j = 0; j < _basis.Size; j++)
-            {
-                Func<Point3D, double> kek;
-                Vector3D psi1 = new(0, 0, 0);
-                Vector3D psi2 = new(0, 0, 0);
-                Vector3D dPsi1 = new(0, 0, 0);
-                Vector3D dPsi2 = new(0, 0, 0);
-
-                int ik = i;
-                int jk = j;
-                kek = point =>
-                {
-                    psi1.Copy(_basis.GetPsi(ik, point));
-                    psi2.Copy(_basis.GetPsi(jk, point));
-
-                    return psi1 * psi2;
-                };
-
-                _massMatrix[i, j] += hx * hy * hz * _integration.Gauss3D(kek);
-
-                kek = point =>
-                {
-                    dPsi1.Copy(_basis.GetDPsi(ik, point));
-                    dPsi2.Copy(_basis.GetDPsi(jk, point));
-
-                    return Vector3D.DotProductJacob(dPsi1, dPsi2, hx, hy, hz);
-                };
-
-                _stiffnessMatrix[i, j] += 1 / _grid.Mu * _integration.Gauss3D(kek);
-            }
-
-            _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, _timeGrid[itime], i, _grid.GetSigma(
-                new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
-                    _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
-                    _grid.Edges[_grid.Elements[ielem][11]].Point.Z)));
+            _elementPointList[i] = _grid.Edges[_grid.Elements[ielem][i]].Point;
         }
+        
+        double hx = _grid.Edges[_grid.Elements[ielem][0]].Length;
+        double hy = _grid.Edges[_grid.Elements[ielem][4]].Length;
+        double hz = _grid.Edges[_grid.Elements[ielem][8]].Length;
 
-        _localVector = _massMatrix * _localVector;
+        _elementAssembler.Element.SetElement(_elementPointList, hx, hy, hz,
+            _grid.GetSigma(_grid.Edges[_grid.Elements[ielem][3]].Point));
+        
+        _elementAssembler.AnalyticalAssembly(_timeGrid[itime], _test.F);
+        _elementAssembler.StiffnessMatrix = 1 / _grid.Mu * _elementAssembler.StiffnessMatrix;
+
+        //for (int i = 0; i < _basis.Size; i++)
+        //{
+        //    for (int j = 0; j < _basis.Size; j++)
+        //    {
+        //        Func<Point3D, double> kek;
+        //        Vector3D psi1 = new(0, 0, 0);
+        //        Vector3D psi2 = new(0, 0, 0);
+        //        Vector3D dPsi1 = new(0, 0, 0);
+        //        Vector3D dPsi2 = new(0, 0, 0);
+
+        //        int ik = i;
+        //        int jk = j;
+        //        kek = point =>
+        //        {
+        //            psi1.Copy(_basis.GetPsi(ik, point));
+        //            psi2.Copy(_basis.GetPsi(jk, point));
+
+        //            return psi1 * psi2;
+        //        };
+
+        //        _massMatrix[i, j] += hx * hy * hz * _integration.Gauss3D(kek);
+
+        //        kek = point =>
+        //        {
+        //            dPsi1.Copy(_basis.GetDPsi(ik, point));
+        //            dPsi2.Copy(_basis.GetDPsi(jk, point));
+
+        //            return Vector3D.DotProductJacob(dPsi1, dPsi2, hx, hy, hz);
+        //        };
+
+        //        _stiffnessMatrix[i, j] += 1 / _grid.Mu * _integration.Gauss3D(kek);
+        //    }
+
+        //    _localVector[i] = _test.F(_grid.Edges[_grid.Elements[ielem][i]].Point, _timeGrid[itime], i, _grid.GetSigma(
+        //        new Point3D(_grid.Edges[_grid.Elements[ielem][0]].Point.X,
+        //            _grid.Edges[_grid.Elements[ielem][3]].Point.Y,
+        //            _grid.Edges[_grid.Elements[ielem][11]].Point.Z)));
+        //}
+
+        //_localVector = _massMatrix * _localVector;
     }
     
     private void AccountDirichletBoundaries(int itime)
     {
-        foreach (var edge in _grid.DirichletBoundaries)
+        if (_globalMatrix.Symmetric)
         {
+            foreach (var edge in _grid.DirichletBoundaries)
+            {
+                _globalMatrix.Di[edge] = 1;
+                var value = _test.UValue(_grid.Edges[edge].Point, _timeGrid[itime], _grid.Edges[edge].GetAxis());
+                _globalVector[edge] = value;
 
-            _globalMatrix.Di[edge] = 1;
-            _globalVector[edge] = _test.UValue(_grid.Edges[edge].Point, _timeGrid[itime], _grid.Edges[edge].GetAxis());
+                for (int i = _globalMatrix.Ig[edge]; i < _globalMatrix.Ig[edge + 1]; i++)
+                {
+                    _globalVector[_globalMatrix.Jg[i]] -= value * _globalMatrix.Gg[i];
+                    _globalMatrix.Gg[i] = 0;
+                }
 
-            for (int i = _globalMatrix.Ig[edge]; i < _globalMatrix.Ig[edge + 1]; i++)
-                _globalMatrix.Ggl[i] = 0;
-
-            for (int col = edge + 1; col < _globalMatrix.Size; col++)
-                for (int j = _globalMatrix.Ig[col]; j < _globalMatrix.Ig[col + 1]; j++)
-                    if (_globalMatrix.Jg[j] == edge)
+                for (int i = edge + 1; i < _globalMatrix.Size; i++)
+                {
+                    for (int j = _globalMatrix.Ig[i]; j < _globalMatrix.Ig[i + 1]; j++)
                     {
-                        _globalMatrix.Ggu[j] = 0;
-                        break;
+                        if (_globalMatrix.Jg[j] == edge)
+                        {
+                            _globalVector[i] -= value * _globalMatrix.Gg[j];
+                            _globalMatrix.Gg[j] = 0;
+                        }
                     }
+                }
+            }
+        }
+
+        else
+        {
+            foreach (var edge in _grid.DirichletBoundaries)
+            {
+
+                _globalMatrix.Di[edge] = 1;
+                _globalVector[edge] = _test.UValue(_grid.Edges[edge].Point, _timeGrid[itime], _grid.Edges[edge].GetAxis());
+
+                for (int i = _globalMatrix.Ig[edge]; i < _globalMatrix.Ig[edge + 1]; i++)
+                    _globalMatrix.Ggl[i] = 0;
+
+                for (int col = edge + 1; col < _globalMatrix.Size; col++)
+                    for (int j = _globalMatrix.Ig[col]; j < _globalMatrix.Ig[col + 1]; j++)
+                        if (_globalMatrix.Jg[j] == edge)
+                        {
+                            _globalMatrix.Ggu[j] = 0;
+                            break;
+                        }
+            }
         }
     }
 
@@ -1052,7 +669,7 @@ public class FEM
         list = list.Select(childlist => childlist.Order().ToHashSet()).ToArray();
         int count = list.Sum(childlist => childlist.Count);
 
-        _globalMatrix = new(_grid.Edges.Length, count);
+        _globalMatrix = new(_grid.Edges.Length, count, true);
         _globalVector = new(_grid.Edges.Length);
         _solution = new(_grid.Edges.Length);
         _layers = new Vector[3].Select(_ => new Vector(_grid.Edges.Length)).ToArray();
@@ -1334,22 +951,5 @@ public class FEM
 
         //return Axy - Ayx;
         return vec1.Y - vec1.X;
-    }
-
-    private List<int> FindElementNumberForGenerator()
-    {
-        List<int> genNumbers = new List<int>();
-        for (int i = 0; i < _grid.Elements.Length; i++)
-        {
-
-            if (!(_grid.Edges[_grid.Elements[i][0]].Point0.X > _generator.xEnd || _generator.xStart > _grid.Edges[_grid.Elements[i][0]].Point1.X ||
-                  _grid.Edges[_grid.Elements[i][2]].Point0.Y > _generator.yEnd || _generator.yStart > _grid.Edges[_grid.Elements[i][2]].Point1.Y) &&
-                  _grid.Edges[_grid.Elements[i][0]].Point0.Z <= _generator.zStart && _grid.Edges[_grid.Elements[i][11]].Point1.Z >= _generator.zEnd)
-            {
-                genNumbers.Add(i);
-            }
-        }
-
-        return genNumbers;
     }
 }

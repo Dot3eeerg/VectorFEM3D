@@ -4,28 +4,20 @@ Grid grid = new Grid("GridParameters");
 grid.BuildGrid();
 grid.AccountBoundaryConditions();
 
-//TimeGrid timeGrid = new TimeGrid("TimeGridParameters");
-//timeGrid.BuildTimeGrid();
+TimeGrid timeGrid = new TimeGrid("TimeGridParameters");
+timeGrid.BuildTimeGrid();
 
-GeneratedTimeGrid timeGrid = new GeneratedTimeGrid("time_s.txt");
+//GeneratedTimeGrid timeGrid = new GeneratedTimeGrid("time_s.txt");
 
 FEM fem = new FEM(grid, timeGrid);
 
-fem.SetTest(new Test1(grid));
+fem.SetTest(new Test2(grid));
 
-//fem.SetSolver(new BCGSTABLUSolver(1e-14, 5000));
-fem.SetSolver(new BCGSTABSolver(1e-14, 5000));
-//fem.SetSolver(new LUSolver());
+fem.SetSolver(new LOSLTSolver(1e-39, 5000));
 
-fem.SetScheme(Scheme.Natural);
+//fem.SetScheme(Scheme.Natural);
 //fem.SetScheme(Scheme.Two_layer_Implicit);
-//fem.SetScheme(Scheme.Three_layer_Implicit);
+fem.SetScheme(Scheme.Three_layer_Implicit);
 //fem.SetScheme(Scheme.Four_layer_Implicit);
 
 fem.Compute();
-
-//fem.GetValue(new Point3D(3, 2, -2));
-//fem.GetValue(new Point3D(1.18, 1.18, 1.18));
-
-var kek = fem.GetValue(new Point3D(1.18, 1.18, 1.18));
-Console.WriteLine($"{kek.X}, {kek.Y}, {kek.Z}");

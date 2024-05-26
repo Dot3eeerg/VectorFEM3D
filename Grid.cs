@@ -26,11 +26,11 @@ public class Grid
     private readonly List<double> _yValues = new List<double>();
     private readonly List<double> _zValues = new List<double>();
 
-    public double GeneratorX;
-    public double GeneratorY;
+    public (double, double) GeneratorX;
+    public (double, double) GeneratorY;
     public double GeneratorZ;
-    private double _receiver;
     public double SourceValue;
+    public (double, double) Receiver;
 
     private List<int> _sumSteps;
 
@@ -119,6 +119,18 @@ public class Grid
                 _zones[i][4] = Convert.ToInt32(data[5]);
                 _zones[i][5] = Convert.ToInt32(data[6]);
             }
+
+            data = sr.ReadLine()!.Split(" ").ToArray();
+            GeneratorX.Item1 = Convert.ToDouble(data[0]);
+            GeneratorX.Item2 = Convert.ToDouble(data[1]);
+            GeneratorY.Item1 = Convert.ToDouble(data[2]);
+            GeneratorY.Item2 = Convert.ToDouble(data[3]);
+            GeneratorZ = Convert.ToDouble(data[4]);
+            SourceValue = Convert.ToDouble(data[5]);
+
+            data = sr.ReadLine()!.Split(" ").ToArray();
+            Receiver.Item1 = Convert.ToDouble(data[0]);
+            Receiver.Item2 = Convert.ToDouble(data[1]);
         }
     }
 

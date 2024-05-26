@@ -187,7 +187,7 @@ public class FEM
         }
         
 
-        using (var sw = new StreamWriter("Tests/Graphs/EMFResults"))
+        using (var sw = new StreamWriter("Tests/Graphs/EMFResultsFull"))
         {
             for ( ; itime < _timeGrid.TGrid.Length; itime++)
             {
@@ -229,7 +229,11 @@ public class FEM
                 }
                 
                 _solution = _slae.Solve();
-                PrintError(itime);
+                var kek = CalculateEMF(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ),
+                    itime);
+                Console.WriteLine(kek);
+                sw.WriteLine(kek);
+                //PrintError(itime);
 
                 switch (_activeScheme)
                 {
@@ -314,20 +318,68 @@ public class FEM
         switch (_activeScheme)
         {
             case Scheme.Natural:
-              if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X >= -51 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.X <= 51 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y >= -51 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Y <= 51 &&
-                  _grid.Edges[_grid.Elements[ielem][0]].Point0.Z <= 51 &&
-                  _grid.Edges[_grid.Elements[ielem][11]].Point1.Z >= 30)
-              {
-                  for (int i = 0; i < _basis.Size; i++)
-                  {
-                      _globalVector[_grid.Elements[ielem][i]] = 1;
-                  }
-              }
+                if (_grid.Edges[_grid.Elements[ielem][0]].Point0.Z < _grid.GeneratorZ &&
+                    _grid.Edges[_grid.Elements[ielem][11]].Point1.Z > _grid.GeneratorZ)
+                {
+                    var point = new Point3D(0, 0, 0);
+                    
+                    // 1
+                    if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X > _grid.GeneratorX.Item1 &&
+                        _grid.Edges[_grid.Elements[ielem][3]].Point1.X < _grid.GeneratorX.Item2 &&
+                        _grid.Edges[_grid.Elements[ielem][0]].Point0.Y < _grid.GeneratorY.Item1 &&
+                        _grid.Edges[_grid.Elements[ielem][0]].Point1.Y > _grid.GeneratorY.Item2)
+                    {
+                        point.X = (_grid.Edges[_grid.Elements[ielem][0]].Point.X -
+                                   _grid.Edges[_grid.Elements[ielem][0]].Point0.X) /
+                                  _grid.Edges[_grid.Elements[ielem][0]].Length;
+                        
+                        point.Y = (_grid.GeneratorY.Item1 - _grid.Edges[_grid.Elements[ielem][0]].Point0.Y) /
+                                  _grid.Elements[_grid.Elements[ielem][0]].Length;
+                        
+                        point.Z = 0;
+                        
+                        for (int i = 0; i < _basis.Size; i++)
+                        {
+                            _globalVector[_grid.Elements[ielem][i]] += _grid.SourceValue * _basis.GetPsi(i, point).X;
+                        }
+                    }
+                    
+                    // 2
+                    if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X > _grid.GeneratorX.Item1 &&
+                        _grid.Edges[_grid.Elements[ielem][3]].Point1.X < _grid.GeneratorX.Item2 &&
+                        _grid.Edges[_grid.Elements[ielem][3]].Point1.Y < _grid.GeneratorY.Item1 &&
+                        _grid.Edges[_grid.Elements[ielem][3]].Point1.Y > _grid.GeneratorY.Item2)
+                    {
+                        point.X = (_grid.Edges[_grid.Elements[ielem][0]].Point.X -
+                                   _grid.Edges[_grid.Elements[ielem][0]].Point0.X) /
+                                  _grid.Edges[_grid.Elements[ielem][0]].Length;
+                        
+                        point.Y = (_grid.GeneratorY.Item2 - _grid.Edges[_grid.Elements[ielem][3]].Point0.Y) /
+                                  _grid.Elements[_grid.Elements[ielem][0]].Length;
+                        
+                        point.Z = 0;
+                        
+                        for (int i = 0; i < _basis.Size; i++)
+                        {
+                            _globalVector[_grid.Elements[ielem][i]] += _grid.SourceValue * _basis.GetPsi(i, point).X;
+                        }
+                    }
+                }
+                
+                //if (_grid.Edges[_grid.Elements[ielem][0]].Point0.X >= -51 &&
+                //    _grid.Edges[_grid.Elements[ielem][0]].Point0.X <= 51 &&
+                //    _grid.Edges[_grid.Elements[ielem][0]].Point0.Y >= -51 &&
+                //    _grid.Edges[_grid.Elements[ielem][0]].Point0.Y <= 51 &&
+                //    _grid.Edges[_grid.Elements[ielem][0]].Point0.Z <= 51 &&
+                //    _grid.Edges[_grid.Elements[ielem][11]].Point1.Z >= 30)
+                //{
+                //    for (int i = 0; i < _basis.Size; i++)
+                //    {
+                //        _globalVector[_grid.Elements[ielem][i]] = 1;
+                //    }
+                //}
 
-              break;
+                break;
             
             case Scheme.Two_layer_Implicit:
                 for (int i = 0; i < _basis.Size; i++)

@@ -11,7 +11,7 @@ timeGrid.BuildTimeGrid();
 
 FEM fem = new FEM(grid, timeGrid);
 
-fem.SetTest(new Test2(grid));
+fem.SetTest(new Test1(grid));
 
 fem.SetSolver(new LOSLTSolver(1e-39, 5000));
 

@@ -58,3 +58,55 @@ public readonly record struct TriLinearVectorBasis : IBasis3D
             _ => throw new ArgumentOutOfRangeException(nameof(number), number, "Not expected Xi member")
         };
 }
+
+public interface IBasis2D
+{
+    int Size { get; }
+    double GetPsi(int number, Point2D point);
+    double GetDPsi(int number, int dNumber, Point2D point);
+}
+
+public readonly record struct BiLinearBasis : IBasis2D
+{
+    public int Size => 4;
+
+    public BiLinearBasis() { }
+    
+    public double GetPsi(int number, Point2D point)
+        => number switch
+        {
+            0 => GetXi(0, point.X) * GetXi(0, point.Y),
+            1 => GetXi(1, point.X) * GetXi(0, point.Y),
+            2 => GetXi(0, point.X) * GetXi(1, point.Y),
+            3 => GetXi(1, point.X) * GetXi(1, point.Y),
+            _ => throw new ArgumentOutOfRangeException(nameof(number), number, "Not expected function number")
+        };
+    
+    public double GetDPsi(int number, int dNumber, Point2D point)
+        => dNumber switch
+        {
+            0 => number switch
+            {
+                0 => -GetXi(0, point.Y),
+                1 => GetXi(0, point.Y),
+                2 => -GetXi(1, point.Y),
+                3 => GetXi(1, point.Y)
+            },
+            1 => number switch
+            {
+                0 => -GetXi(0, point.X),
+                1 => -GetXi(1, point.X),
+                2 => GetXi(0, point.X),
+                3 => GetXi(1, point.X)
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(number), number, "Not expected function number")
+        };
+
+    private double GetXi(int number, double value)
+        => number switch
+        {
+            0 => 1 - value,
+            1 => value,
+            _ => throw new ArgumentOutOfRangeException(nameof(number), number, "Not expected Xi member")
+        };
+}

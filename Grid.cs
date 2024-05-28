@@ -261,6 +261,16 @@ public class Grid
         }
         _zValues.Add(_zEnd[^1]);
 
+        //for (int i = 0; i < _zValues.Count; i++)
+        //{
+        //    if (_zValues[i] > GeneratorZ)
+        //    {
+        //        _zValues[i] = GeneratorZ;
+        //        
+        //        break;
+        //    }
+        //}
+
         for (int i = 0; i < _zValues.Count; i++)
         {
             for (int j = 0; j < _yValues.Count; j++)

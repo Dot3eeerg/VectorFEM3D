@@ -135,6 +135,8 @@ public class LOSLTSolver : SLAE
          var beta = -(p * tmp) / (p * p);
          z = BackSub(r, ltMatrix) + (beta * z);
          p = tmp + (beta * p);
+         
+         //Console.WriteLine($"{i}: {error}");
       }
 
       Console.WriteLine($"Iters: {i}\tError: {error}");

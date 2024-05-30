@@ -73,4 +73,6 @@ public class Vector3D
         vector1._z /= value2;
         return vector1;
     }
+    
+    public double GetLength() => Math.Sqrt(_x * _x + _y * _y + _z * _z);
 }

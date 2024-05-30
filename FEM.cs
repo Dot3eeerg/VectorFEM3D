@@ -1,4 +1,7 @@
-﻿namespace VectorFEM3D;
+﻿using System.Drawing;
+using System.Numerics;
+
+namespace VectorFEM3D;
 
 public class FEM
 {
@@ -61,6 +64,8 @@ public class FEM
                 _2DSolution[i] = Convert.ToDouble(sr.ReadLine());
             }
         }
+        
+        Console.WriteLine(GetValue(new Point2D(0.5, 30), grid));
 
         Point2D point = new Point2D(0, 0);
         double result;
@@ -91,7 +96,9 @@ public class FEM
                     break;
                 
                 case 2:
-                    continue;
+                    _solution[i] = 0;
+
+                    break;
             }
         }
     }
@@ -234,6 +241,8 @@ public class FEM
                 break;
         }
         
+        Console.WriteLine($"{GetValue(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ)).GetLength()}");
+        //return;
 
         using (var sw = new StreamWriter("Tests/Graphs/EMFResultsFull"))
         {
@@ -242,30 +251,18 @@ public class FEM
                 AssemblySLAE(itime);
                 AccountDirichletBoundaries(itime);
                 
-                //Vector kek = new Vector(_globalVector.Length);
-                //for (int i = 0; i < kek.Length; i++)
-                //{
-                //    kek[i] = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis());
-                //}
-
-                //_solution = _globalMatrix * kek;
-
-                //for (int i = 0; i < _solution.Length; i++)
-                //{
-                //    Console.Write($"{_solution[i] - _globalVector[i]}\t");
-                //}
-                //break;
-
+                _solution.Fill(0);
                 switch (_activeScheme)
                 {
                     case Scheme.Two_layer_Implicit:
                         _slae.SetSLAE(_globalVector, _globalMatrix, _layers[0]);
+                        //_slae.SetSLAE(_globalVector, _globalMatrix, _solution);
                         
                         break;
                     
                     case Scheme.Three_layer_Implicit:
-                        _slae.SetSLAE(_globalVector, _globalMatrix, _layers[1]);
-                        //_slae.SetSLAE(_globalVector, _globalMatrix, _solution);
+                        //_slae.SetSLAE(_globalVector, _globalMatrix, _layers[1]);
+                        _slae.SetSLAE(_globalVector, _globalMatrix, _solution);
                         
                         break;
                     
@@ -276,22 +273,31 @@ public class FEM
                         
                 }
                 
+                //Console.Write($"Layer {itime}: ");
                 _solution = _slae.Solve();
-                var kek = CalculateEMF(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ),
-                    itime);
-                Console.WriteLine(kek);
-                sw.WriteLine(kek);
+                //var kek = CalculateEMF(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ),
+                //    itime);
+                //Console.WriteLine(kek);
+                ////sw.WriteLine(kek);
 
-                var anime = GetValue(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ));
-                Console.WriteLine($"{anime.X} {anime.Y} {anime.Z}");
-                //PrintError(itime);
+                //var anime = GetValue(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ));
+                //Console.WriteLine($"{anime.X} {anime.Y} {anime.Z}");
+                ////sw.WriteLine($"{anime.X} {anime.Y} {anime.Z} {anime.GetLength()}");
+                //sw.WriteLine($"{anime.GetLength()}");
+
+                //if (itime == 45)
+                //{
+                //    break;
+                //}
+                //
+                PrintError(itime);
 
                 switch (_activeScheme)
                 {
                     case Scheme.Two_layer_Implicit:
                         if (_scheme == Scheme.Natural)
                         {
-                            if (itime == 2)
+                            if (itime == 1000)
                             {
                                 _activeScheme = Scheme.Three_layer_Implicit;
                                 
@@ -866,12 +872,74 @@ public class FEM
     private void PrintError(int itime)
     {
         double error = 0;
+        double errorX = 0;
+        double errorY = 0;
+        double errorZ = 0;
+        //for (int i = 0; i < _grid.Edges.Length; i++)
+        //{
+        //    error += Math.Pow(
+        //        _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
+        //}
+        //
+        Point3D center = new Point3D(0, 0, 0);
+        Point3D test = new Point3D(0, 0, 0);
+        Vector3D approx;
+        
+        double x = 0;
+        double y = 0;
+        double z = 0;
+
+        double approxX = 0;
+        double approxY = 0;
+        double approxZ = 0;
+
         for (int i = 0; i < _grid.Edges.Length; i++)
         {
-            error += Math.Pow(
-                _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], _grid.Edges[i].GetAxis()) - _solution[i], 2);
+            test.X = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], 0);
+            test.Y = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], 1);
+            test.Z = _test.UValue(_grid.Edges[i].Point, _timeGrid[itime], 2);
+            
+            //var length = test.X * test.X + test.Y * test.Y + test.Z * test.Z;
+            
+            approx = GetValue(_grid.Edges[i].Point);
+
+            x += Math.Pow(approx.X - test.X, 2);
+            y += Math.Pow(approx.Y - test.Y, 2);
+            z += Math.Pow(approx.Z - test.Z, 2);
+
+            approxX += Math.Pow(approx.X, 2);
+            approxY += Math.Pow(approx.Y, 2);
+            approxZ += Math.Pow(approx.Z, 2);
+
+            //error += Math.Pow(length - approx.GetLength(), 2);
         }
-        Console.WriteLine($"Layer error {itime} = {Math.Sqrt(error / _grid.Edges.Length)}");
+
+        //for (int i = 0; i < _grid.Elements.Length; i++)
+        //{
+        //    center.X = _grid.Edges[_grid.Elements[i][3]].Point.X;
+        //    center.Y = _grid.Edges[_grid.Elements[i][7]].Point.Y;
+        //    center.Z = _grid.Edges[_grid.Elements[i][11]].Point.Z;
+        //    
+        //    test.X = _test.UValue(center, _timeGrid[itime], 0);
+        //    test.Y = _test.UValue(center, _timeGrid[itime], 1);
+        //    test.Z = _test.UValue(center, _timeGrid[itime], 2);
+        //    
+        //    //var length = test.X * test.X + test.Y * test.Y + test.Z * test.Z;
+        //    
+        //    approx = GetValue(center);
+
+        //    x += Math.Pow(approx.X - test.X, 2);
+        //    y += Math.Pow(approx.Y - test.Y, 2);
+        //    z += Math.Pow(approx.Z - test.Z, 2);
+
+        //    approxX += Math.Pow(approx.X, 2);
+        //    approxY += Math.Pow(approx.Y, 2);
+        //    approxZ += Math.Pow(approx.Z, 2);
+
+        //    //error += Math.Pow(length - approx.GetLength(), 2);
+        //}
+        //Console.WriteLine($"Layer error {itime} = {Math.Sqrt(error / _grid.Elements.Length)}");
+        Console.WriteLine($"Layer {itime}: x = {Math.Sqrt(x / approxX)} y = {Math.Sqrt(y / approxY)} z = {Math.Sqrt(z / approxZ)}");
     }
     
     private int FindElement(Point2D point, Grid2D grid)
@@ -934,13 +1002,13 @@ public class FEM
 
         foreach (var elem in _grid.Elements)
         {
-            if (point.X >= _grid.Edges[elem[0]].Point0.X && point.X < _grid.Edges[elem[11]].Point1.X &&
-                point.Y >= _grid.Edges[elem[0]].Point0.Y && point.Y < _grid.Edges[elem[11]].Point1.Y &&
-                point.Z >= _grid.Edges[elem[0]].Point0.Z && point.Z < _grid.Edges[elem[11]].Point1.Z)
+            if (point.X >= _grid.Edges[elem[0]].Point0.X && point.X <= _grid.Edges[elem[11]].Point1.X &&
+                point.Y >= _grid.Edges[elem[0]].Point0.Y && point.Y <= _grid.Edges[elem[11]].Point1.Y &&
+                point.Z >= _grid.Edges[elem[0]].Point0.Z && point.Z <= _grid.Edges[elem[11]].Point1.Z)
             {
                 kek.X = (point.X - _grid.Edges[elem[0]].Point0.X) / _grid.Edges[elem[0]].Length;
-                kek.Y = (point.Y - _grid.Edges[elem[2]].Point0.Y) / _grid.Edges[elem[2]].Length;
-                kek.Z = (point.Z - _grid.Edges[elem[4]].Point0.Z) / _grid.Edges[elem[4]].Length;
+                kek.Y = (point.Y - _grid.Edges[elem[4]].Point0.Y) / _grid.Edges[elem[4]].Length;
+                kek.Z = (point.Z - _grid.Edges[elem[8]].Point0.Z) / _grid.Edges[elem[8]].Length;
                 
                 for (int i = 0; i < _basis.Size; i++)
                 {
@@ -1098,7 +1166,7 @@ public class FEM
         
         for (int i = 0; i < _basis.Size; i++)
         {
-            if (i is >= 4 and <= 7)
+            if (i is >= 8 and <= 11)
             {
                 continue;
             }

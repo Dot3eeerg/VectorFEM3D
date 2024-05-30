@@ -15,6 +15,7 @@ public class Grid
     private readonly List<int> _zSteps = new List<int>();
     private readonly List<double> _zRaz = new List<double>();
     private readonly int[] _boundaries;
+    
 
     private readonly double[] _xZones;
     private readonly double[] _yZones;
@@ -25,6 +26,10 @@ public class Grid
     private readonly List<double> _xValues = new List<double>();
     private readonly List<double> _yValues = new List<double>();
     private readonly List<double> _zValues = new List<double>();
+
+    public List<double> Xvalues => _xValues;
+    public List<double> Yvalues => _yValues;
+    public List<double> Zvalues => _zValues;
 
     public (double, double) GeneratorX;
     public (double, double) GeneratorY;

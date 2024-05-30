@@ -22,15 +22,15 @@ grid2D.BuildGrid(true);
 
 FEM fem = new FEM(grid, timeGrid);
 
-fem.SetTest(new Test3(grid));
+fem.SetTest(new Test1(grid));
 
 fem.SetSolver(new LOSLTSolver(1e-39, 5000));
 
-//fem.SetScheme(Scheme.Natural);
+fem.SetScheme(Scheme.Natural);
 //fem.SetScheme(Scheme.Two_layer_Implicit);
-fem.SetScheme(Scheme.Three_layer_Implicit);
+//fem.SetScheme(Scheme.Three_layer_Implicit);
 //fem.SetScheme(Scheme.Four_layer_Implicit);
 
-//fem.Convert2DSolution(grid2D);
+fem.Convert2DSolution(grid2D);
 
-fem.Compute();
+//fem.Compute();

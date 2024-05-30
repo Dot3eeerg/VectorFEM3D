@@ -101,6 +101,51 @@ public class FEM
                     break;
             }
         }
+
+        using (var sw = new StreamWriter("Tests/A0/xy"))
+        {
+            Point3D anime = new Point3D(0, 0, 0);
+            //for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
+            //{
+            //    if (_grid.Edges[_grid.Elements[ielem][3]].Point0.Y <= 0 &&
+            //        _grid.Edges[_grid.Elements[ielem][7]].Point1.Y >= 0)
+            //    {
+            //        anime.X = _grid.Edges[_grid.Elements[ielem][3]].Point.X;
+            //        anime.Y = _grid.Edges[_grid.Elements[ielem][7]].Point.Y;
+            //        anime.Z = _grid.Edges[_grid.Elements[ielem][11]].Point.Z;
+            //        sw.WriteLine(GetValue(anime).GetLength());
+            //    }
+            //}
+            for (int i = 0; i < _grid.Zvalues.Count; i++)
+            {
+                for (int j = 0; j < _grid.Yvalues.Count; j++)
+                {
+                    anime.Y = _grid.Yvalues[j];
+                    anime.X = _grid.Xvalues[j];
+                    anime.Z = _grid.Zvalues[i];
+                    sw.WriteLine(GetValue(anime).GetLength());
+                }
+            }
+        }
+
+        using (var sw = new StreamWriter("Tests/A0/rxy"))
+        {
+            Point2D kek = new Point2D(0, 0);
+
+            for (int i = 0; i < _grid.Zvalues.Count; i++)
+            {
+                for (int j = 0; j < _grid.Xvalues.Count; j++)
+                {
+                    kek.X = Math.Sqrt(_grid.Xvalues[j] * _grid.Xvalues[j] + _grid.Yvalues[j] * _grid.Yvalues[j]);
+                    if (kek.X == 0)
+                    {
+                        kek.X = 0.01;
+                    }
+                    kek.Y = _grid.Zvalues[i];
+                    sw.WriteLine(GetValue(kek, grid));
+                }
+            }
+        }
     }
 
     public void Compute()
@@ -114,115 +159,8 @@ public class FEM
             case Scheme.Natural:
                 itime = 0;
                 
-                //Console.WriteLine("Start");
-                //AssemblySLAE(itime);
-                //Console.WriteLine("End");
-                //AccountDirichletBoundaries(itime);
-                //
-                //Console.WriteLine("Layer 0");
-
-                //for (int i = 0; i < _globalMatrix.Di.Length; i++)
-                //{
-                //    _globalMatrix.Di[i] += 0.001;
-                //}
-                //_slae.SetSLAE(_globalVector, _globalMatrix, _solution);
-                //_solution = _slae.Solve();
-
                 _activeScheme = Scheme.Two_layer_Implicit;
                 itime++;
-                
-                //var hx = 5;
-                //var hy = 5;
-                //double delta = 1e-10;
-                //
-                //var stepsX = _generator.Length / hx;
-                //var stepsY = _generator.Width / hy;
-
-                //for (int i = 0; i < _grid.Edges.Length; i++)
-                //{
-                //    double point;
-                //    double len1;
-                //    double len2;
-                //    
-                //    switch (_grid.Edges[i].GetAxis())
-                //    {
-                //        case 0:
-                //            point = _generator.xStart + hx / 2.0;
-                //            
-                //            for (int j = 0; j < stepsX; j++)
-                //            {
-                //                len1 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                //                                 Math.Pow(_generator.yStart - _grid.Edges[i].Point.Y, 2) +
-                //                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-                //                
-                //                if (len1 < 1e-10)
-                //                {
-                //                    len1 = delta;
-                //                }
-
-                //                len2 = Math.Sqrt(Math.Pow(point - _grid.Edges[i].Point.X, 2) +
-                //                                 Math.Pow(_generator.yEnd - _grid.Edges[i].Point.Y, 2) +
-                //                                 Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-                //                
-                //                if (len2 < 1e-10)
-                //                {
-                //                    len2 = delta;
-                //                }
-                //                
-                //                _solution[i] += _mu0 / (4 * Math.PI) * hx / len1;
-                //                _solution[i] += -_mu0 / (4 * Math.PI) * hx / len2;
-                //                
-                //                point += hx;
-                //            }
-
-                //            break;
-                //        
-                //        case 1:
-                //            point = _generator.yStart + hy / 2.0;
-                //            
-                //            for (int j = 0; j < stepsY; j++)
-                //            {
-                //                len1 = Math.Sqrt(
-                //                    Math.Pow(_generator.xEnd - _grid.Edges[i].Point.X, 2) +
-                //                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                //                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-
-                //                if (len1 < 1e-10)
-                //                {
-                //                    len1 = delta;
-                //                }
-
-                //                len2 = Math.Sqrt(
-                //                    Math.Pow(_generator.xStart - _grid.Edges[i].Point.X, 2) +
-                //                    Math.Pow(point - _grid.Edges[i].Point.Y, 2) +
-                //                    Math.Pow(_generator.zStart - _grid.Edges[i].Point.Z, 2));
-
-                //                if (len2 < 1e-10)
-                //                {
-                //                    len2 = delta;
-                //                }
-                //                
-                //                _solution[i] += _mu0 / (4 * Math.PI) * hy / len1;
-                //                _solution[i] += -_mu0 / (4 * Math.PI) * hy / len2;
-                //                
-                //                point += hy;
-                //            }
-                //            
-                //            break;
-                //        
-                //        case 2:
-                //            break;
-                //    }
-                //    
-                //}
-
-                //for (int i = 0; i < _grid.Edges.Length; i++)
-                //{
-                //    if (_grid.DirichletBoundaries.Contains(i))
-                //    {
-                //        _solution[i] = 0;
-                //    }
-                //}
                 
                 Vector.Copy(_solution, _layers[0]);
                 
@@ -261,8 +199,8 @@ public class FEM
                         break;
                     
                     case Scheme.Three_layer_Implicit:
-                        //_slae.SetSLAE(_globalVector, _globalMatrix, _layers[1]);
-                        _slae.SetSLAE(_globalVector, _globalMatrix, _solution);
+                        _slae.SetSLAE(_globalVector, _globalMatrix, _layers[1]);
+                        //_slae.SetSLAE(_globalVector, _globalMatrix, _solution);
                         
                         break;
                     

@@ -9,6 +9,7 @@ public class FEM
     private Vector? _globalVector;
     private Vector[]? _layers;
     private Vector? _solution;
+    private Vector? _solution1;
     private Grid? _grid;
     private ITimeGrid _timeGrid;
     private Test? _test;
@@ -102,53 +103,55 @@ public class FEM
             }
         }
 
-        using (var sw = new StreamWriter("Tests/A0/xy"))
-        {
-            Point3D anime = new Point3D(0, 0, 0);
-            //for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
-            //{
-            //    if (_grid.Edges[_grid.Elements[ielem][3]].Point0.Y <= 0 &&
-            //        _grid.Edges[_grid.Elements[ielem][7]].Point1.Y >= 0)
-            //    {
-            //        anime.X = _grid.Edges[_grid.Elements[ielem][3]].Point.X;
-            //        anime.Y = _grid.Edges[_grid.Elements[ielem][7]].Point.Y;
-            //        anime.Z = _grid.Edges[_grid.Elements[ielem][11]].Point.Z;
-            //        sw.WriteLine(GetValue(anime).GetLength());
-            //    }
-            //}
-            for (int i = 0; i < _grid.Zvalues.Count; i++)
-            {
-                for (int j = 0; j < _grid.Yvalues.Count; j++)
-                {
-                    anime.Y = _grid.Yvalues[j];
-                    anime.X = _grid.Xvalues[j];
-                    anime.Z = _grid.Zvalues[i];
-                    sw.WriteLine(GetValue(anime).GetLength());
-                }
-            }
-        }
+        //using (var sw = new StreamWriter("Tests/A0/xy"))
+        //{
+        //    Point3D anime = new Point3D(0, 0, 0);
 
-        using (var sw = new StreamWriter("Tests/A0/rxy"))
-        {
-            Point2D kek = new Point2D(0, 0);
+        //    //for (int ielem = 0; ielem < _grid.Elements.Length; ielem++)
+        //    //{
+        //    //    if (_grid.Edges[_grid.Elements[ielem][3]].Point0.Y <= 0 &&
+        //    //        _grid.Edges[_grid.Elements[ielem][7]].Point1.Y >= 0)
+        //    //    {
+        //    //        anime.X = _grid.Edges[_grid.Elements[ielem][3]].Point.X;
+        //    //        anime.Y = _grid.Edges[_grid.Elements[ielem][7]].Point.Y;
+        //    //        anime.Z = _grid.Edges[_grid.Elements[ielem][11]].Point.Z;
+        //    //        sw.WriteLine(GetValue(anime).GetLength());
+        //    //    }
+        //    //}
+        //    
+        //    for (int i = 0; i < _grid.Zvalues.Count; i++)
+        //    {
+        //        for (int j = 0; j < _grid.Yvalues.Count; j++)
+        //        {
+        //            anime.X = _grid.Xvalues[j];
+        //            anime.Y = _grid.Yvalues[j];
+        //            anime.Z = _grid.Zvalues[i];
+        //            sw.WriteLine(GetValue(anime).GetLength());
+        //        }
+        //    }
+        //}
 
-            for (int i = 0; i < _grid.Zvalues.Count; i++)
-            {
-                for (int j = 0; j < _grid.Xvalues.Count; j++)
-                {
-                    kek.X = Math.Sqrt(_grid.Xvalues[j] * _grid.Xvalues[j] + _grid.Yvalues[j] * _grid.Yvalues[j]);
-                    if (kek.X == 0)
-                    {
-                        kek.X = 0.01;
-                    }
-                    kek.Y = _grid.Zvalues[i];
-                    sw.WriteLine(GetValue(kek, grid));
-                }
-            }
-        }
+        //using (var sw = new StreamWriter("Tests/A0/rxy"))
+        //{
+        //    Point2D kek = new Point2D(0, 0);
+
+        //    for (int i = 0; i < _grid.Zvalues.Count; i++)
+        //    {
+        //        for (int j = 0; j < _grid.Xvalues.Count; j++)
+        //        {
+        //            kek.X = Math.Sqrt(_grid.Xvalues[j] * _grid.Xvalues[j] + _grid.Yvalues[j] * _grid.Yvalues[j]);
+        //            if (kek.X == 0)
+        //            {
+        //                kek.X = 0.01;
+        //            }
+        //            kek.Y = _grid.Zvalues[i];
+        //            sw.WriteLine(GetValue(kek, grid));
+        //        }
+        //    }
+        //}
     }
 
-    public void Compute()
+    public void Compute(Grid2D grid)
     {
         PrepareLayers();
 
@@ -188,13 +191,57 @@ public class FEM
             {
                 AssemblySLAE(itime);
                 AccountDirichletBoundaries(itime);
+
+                using (var sr = new StreamReader("2DSolution1"))
+                {
+                    for (int i = 0; i < grid.Nodes.Length; i++)
+                    {
+                        _2DSolution[i] = Convert.ToDouble(sr.ReadLine());
+                    }
+                }
                 
-                _solution.Fill(0);
+                
+                Point2D point = new Point2D(0, 0);
+                double result;
+                
+                for (int i = 0; i < _solution1.Length; i++)
+                {
+                    switch (_grid.Edges[i].GetAxis())
+                    {
+                        case 0:
+                            point.X = Math.Sqrt(_grid.Edges[i].Point.X * _grid.Edges[i].Point.X +
+                                                _grid.Edges[i].Point.Y * _grid.Edges[i].Point.Y);
+                            point.Y = _grid.Edges[i].Point.Z;
+
+                            result = GetValue(point, grid);
+
+                            _solution1[i] = -_grid.Edges[i].Point.Y / point.X * result;
+                            break;
+                        
+                        case 1:
+                            point.X = Math.Sqrt(_grid.Edges[i].Point.X * _grid.Edges[i].Point.X +
+                                                _grid.Edges[i].Point.Y * _grid.Edges[i].Point.Y);
+                            point.Y = _grid.Edges[i].Point.Z;
+                            
+                            result = GetValue(point, grid);
+
+                            _solution1[i] = _grid.Edges[i].Point.X / point.X * result;
+                            
+                            break;
+                        
+                        case 2:
+                            _solution1[i] = 0;
+
+                            break;
+                    }
+                }
+
+                
                 switch (_activeScheme)
                 {
                     case Scheme.Two_layer_Implicit:
                         _slae.SetSLAE(_globalVector, _globalMatrix, _layers[0]);
-                        //_slae.SetSLAE(_globalVector, _globalMatrix, _solution);
+                        //_slae.SetSLAE(_globalVector, _globalMatrix, _solution1);
                         
                         break;
                     
@@ -213,29 +260,63 @@ public class FEM
                 
                 //Console.Write($"Layer {itime}: ");
                 _solution = _slae.Solve();
-                //var kek = CalculateEMF(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ),
-                //    itime);
-                //Console.WriteLine(kek);
-                ////sw.WriteLine(kek);
+                
+                using (var sw1 = new StreamWriter("Tests/A0/x"))
+                {
+                    Point3D anime = new Point3D(0, 0, 0);
+                    
+                    //for (int i = 0; i < _grid.Zvalues.Count; i++)
+                    //{
+                        for (int j = 1; j < _grid.Yvalues.Count; j++)
+                        {
+                            //anime.X = (_grid.Xvalues[j] + _grid.Xvalues[j - 1]) / 2;
+                            anime.X = 0;
+                            anime.Y = (_grid.Yvalues[j] + _grid.Yvalues[j - 1]) / 2;
+                            anime.Z = 30;
+                            sw1.WriteLine(GetValue(anime).GetLength());
+                        }
+                    //}
+                }
+
+                using (var sw1 = new StreamWriter("Tests/A0/r0"))
+                {
+                    Point2D kek = new Point2D(0, 0);
+
+                    //for (int i = 0; i < _grid.Zvalues.Count; i++)
+                    //{
+                        for (int j = 1; j < _grid.Xvalues.Count; j++)
+                        {
+                            double x = (_grid.Xvalues[j] + _grid.Xvalues[j - 1]) / 2;
+                            double y = (_grid.Yvalues[j] + _grid.Yvalues[j - 1]) / 2;
+                            //kek.X = Math.Sqrt(x * x + y * y);
+                            kek.X = Math.Abs(x);
+                            if (kek.X == 0)
+                            {
+                                kek.X = 0.01;
+                            }
+                            kek.Y = 30;
+                            sw1.WriteLine(GetValue(kek, grid));
+                        }
+                    //}
+                }
+                
+
+                
+                return;
 
                 //var anime = GetValue(new Point3D(_grid.Receiver.Item1, _grid.Receiver.Item2, _grid.GeneratorZ));
                 //Console.WriteLine($"{anime.X} {anime.Y} {anime.Z}");
                 ////sw.WriteLine($"{anime.X} {anime.Y} {anime.Z} {anime.GetLength()}");
                 //sw.WriteLine($"{anime.GetLength()}");
 
-                //if (itime == 45)
-                //{
-                //    break;
-                //}
-                //
-                PrintError(itime);
+                //PrintError(itime);
 
                 switch (_activeScheme)
                 {
                     case Scheme.Two_layer_Implicit:
                         if (_scheme == Scheme.Natural)
                         {
-                            if (itime == 1000)
+                            if (itime == 2)
                             {
                                 _activeScheme = Scheme.Three_layer_Implicit;
                                 
@@ -761,6 +842,7 @@ public class FEM
         _globalMatrix = new(_grid.Edges.Length, count, true);
         _globalVector = new(_grid.Edges.Length);
         _solution = new(_grid.Edges.Length);
+        _solution1 = new(_grid.Edges.Length);
         _layers = new Vector[3].Select(_ => new Vector(_grid.Edges.Length)).ToArray();
 
         _globalMatrix.Ig[0] = 0;

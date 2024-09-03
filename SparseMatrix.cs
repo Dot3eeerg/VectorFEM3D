@@ -2,112 +2,120 @@
 
 public class SparseMatrix
 {
-   public int[] Ig { get; set; }
-   public int[] Jg { get; set; }
-   public double[] Di { get; set; }
-   public double[] Ggl { get; set; }
-   public double[] Ggu { get; set; }
-   public int Size { get; set; }
+    public int[] Ig { get; }
+    public int[] Jg { get; }
+    public double[] Di { get; }
+    public double[] Gg { get; }
+    public int Size { get; }
+    public double[] Ggl { get; }
+    public double[] Ggu { get; }
+    public bool Symmetric { get; }
 
-   public SparseMatrix(int size, int sizeOffDiag)
-   {
-      Size = size;
-      Ig = new int[size + 1];
-      Jg = new int[sizeOffDiag];
-      Ggl = new double[sizeOffDiag];
-      Ggu = new double[sizeOffDiag];
-      Di = new double[size];
-   }
+    public SparseMatrix(int size, int sizeOffDiag, bool flag)
+    {
+        Size = size;
+        Ig = new int[size + 1];
+        Jg = new int[sizeOffDiag];
+        Gg = new double[sizeOffDiag];
+        Di = new double[size];
+        Ggl = new double[sizeOffDiag];
+        Ggu = new double[sizeOffDiag];
+        Symmetric = flag;
+    }
 
-   public static Vector operator *(SparseMatrix matrix, Vector vector)
-   {
-      Vector product = new(vector.Length);
+    public static Vector operator *(SparseMatrix matrix, Vector vector)
+    {
+        Vector product = new(vector.Length);
 
-      for (int i = 0; i < vector.Length; i++)
-      {
-         product[i] += matrix.Di[i] * vector[i];
-
-         for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
-         {
-            product[i] += matrix.Ggl[j] * vector[matrix.Jg[j]];
-            product[matrix.Jg[j]] += matrix.Ggu[j] * vector[i];
-         }
-      }
-
-      return product;
-   }
-
-   public void Clear()
-   {
-      for (int i = 0; i < Size; i++)
-      {
-         Di[i] = 0.0;
-
-         for (int k = Ig[i]; k < Ig[i + 1]; k++)
-         {
-            Ggl[k] = 0.0;
-            Ggu[k] = 0.0;
-         }
-      }
-   }
-   public SparseMatrix ConvertToProfile()
-   {
-      int sizeOffDiag = 0;
-      for (int i = 0; i < Size; i++)
-      {
-         sizeOffDiag += i - Jg[Ig[i]];
-      }
-
-      SparseMatrix result = new(Size, sizeOffDiag);
-
-      result.Ig[0] = 0;
-
-      for (int i = 0; i < Size; i++)
-      {
-         result.Di[i] = Di[i];
-
-         int rowSize = i - Jg[Ig[i]];
-         result.Ig[i + 1] = result.Ig[i] + rowSize;
-
-         int jPrev = Ig[i];
-         for (int j = result.Ig[i]; j < result.Ig[i + 1]; j++)
-         {
-            int col = i - (result.Ig[i + 1] - j);
-            int colPrev = jPrev < Ig[i + 1]? Jg[jPrev] : i;
-            if (col == colPrev)
+        if (matrix.Symmetric)
+        {
+            for (int i = 0; i < vector.Length; i++)
             {
-               result.Ggl[j] = Ggl[jPrev];
-               result.Ggu[j] = Ggu[jPrev++];
+                product[i] = matrix.Di[i] * vector[i];
+
+                for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
+                {
+                    product[i] += matrix.Gg[j] * vector[matrix.Jg[j]];
+                    product[matrix.Jg[j]] += matrix.Gg[j] * vector[i];
+                }
             }
-            else
+        }
+
+        else
+        {
+            for (int i = 0; i < vector.Length; i++)
             {
-               result.Ggl[j] = 0;
-               result.Ggu[j] = 0;
+                product[i] += matrix.Di[i] * vector[i];
+
+                for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
+                {
+                    product[i] += matrix.Ggl[j] * vector[matrix.Jg[j]];
+                    product[matrix.Jg[j]] += matrix.Ggu[j] * vector[i];
+                }
             }
-            result.Jg[j] = col;
-         }
-      }
+        }
 
-      return result;
-   }
+        return product;
+    }
 
-   public static void Copy(SparseMatrix source, SparseMatrix product)
-   {
-      for (int i = 0; i < product.Size + 1; i++)
-      {
-         product.Ig[i] = source.Ig[i];
-      }
+    public void PrintDense(string path)
+    {
+        double[,] A = new double[Size, Size];
 
-      for (int i = 0; i < product.Size; i++)
-      {
-         product.Di[i] = source.Di[i];
-      }
+        for (int i = 0; i < Size; i++)
+        {
+            A[i, i] = Di[i];
 
-      for (int i = 0; i < product.Jg.Length; i++)
-      {
-         product.Jg[i] = source.Jg[i];
-         product.Ggl[i] = source.Ggl[i];
-         product.Ggu[i] = source.Ggu[i];
-      }
-   }
+            for (int j = Ig[i]; j < Ig[i + 1]; j++)
+            {
+                A[i, Jg[j]] = Gg[j];
+                A[Jg[j], i] = Gg[j];
+            }
+        }
+
+        using var sw = new StreamWriter(path);
+        for (int i = 0; i < Size; i++)
+        {
+            for (int j = 0; j < Size; j++)
+            {
+                sw.Write(A[i, j].ToString("0.00") + "\t");
+            }
+
+            sw.WriteLine();
+        }
+    }
+
+    public void Clear()
+    {
+        for (int i = 0; i < Size; i++)
+        {
+            Di[i] = 0.0;
+
+            for (int k = Ig[i]; k < Ig[i + 1]; k++)
+            {
+                Gg[k] = 0.0;
+            }
+        }
+    }
+    
+    public static void Copy(SparseMatrix source, SparseMatrix product)
+    {
+        for (int i = 0; i < product.Size + 1; i++)
+        {
+            product.Ig[i] = source.Ig[i];
+        }
+
+        for (int i = 0; i < product.Size; i++)
+        {
+            product.Di[i] = source.Di[i];
+        }
+
+        for (int i = 0; i < product.Jg.Length; i++)
+        {
+            product.Jg[i] = source.Jg[i];
+            product.Ggl[i] = source.Ggl[i];
+            product.Ggu[i] = source.Ggu[i];
+            product.Gg[i] = source.Gg[i];
+        }
+    }
 }

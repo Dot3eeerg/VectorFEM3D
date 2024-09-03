@@ -21,10 +21,11 @@ public abstract class SLAE
       this.maxIters = maxIters;
    }
 
-   public void SetSLAE(Vector vector, SparseMatrix matrix)
+   public void SetSLAE(Vector vector, SparseMatrix matrix, Vector solution)
    {
       this.vector = vector;
       this.matrix = matrix;
+      this.solution = solution;
    }
 
    public abstract Vector Solve();
@@ -103,285 +104,202 @@ public abstract class SLAE
    }
 }
 
-
-public class BCGSTABLUSolver : SLAE
+public class LOSLTSolver : SLAE
 {
-   public BCGSTABLUSolver(double eps, int maxIters) : base(eps, maxIters) { }
+   public LOSLTSolver(double eps, int maxIters) : base(eps, maxIters) { }
+   
    public override Vector Solve()
    {
-      solution = new(vector.Length);
+      SparseMatrix ltMatrix = new SparseMatrix(matrix.Size, matrix.Jg.Length, matrix.Symmetric);
+      SparseMatrix.Copy(matrix, ltMatrix);
+      
+      ConvertLT(ltMatrix);
 
-      double vecNorm = vector.Norm();
-
-      SparseMatrix matrixLU = new(matrix.Size, matrix.Jg.Length);
-      SparseMatrix.Copy(matrix, matrixLU);
-
-      Vector r = new(vector.Length);
-      Vector p = new(vector.Length);
-      Vector s;
-      Vector t;
-      Vector v = new(vector.Length);
-
-      double alpha = 1.0;
-      double beta;
-      double omega = 1.0;
-      double rho = 1.0;
-      double rhoPrev;
-
-      int i;
-
-      LU(matrixLU);
-
-      Vector r0 = DirElim(matrixLU, vector - matrix * solution);
-      Vector.Copy(r0, r);
-
-      for (i = 1; i <= maxIters && r.Norm() / vecNorm > eps; i++)
+      for (int j = 0; j < ltMatrix.Gg.Length; j++)
       {
-         rhoPrev = rho;
-         rho = (r0 * r);
-
-         beta = rho / rhoPrev * alpha / omega;
-
-         p = r + beta * (p - omega * v);
-
-         v = DirElim(matrixLU, matrix * BackSub(matrixLU, p));
-
-         alpha = rho / (r0 * v);
-
-         s = r - alpha * v;
-
-         t = DirElim(matrixLU, matrix * BackSub(matrixLU, s));
-
-         omega = (t * s) / (t * t);
-
-         solution = solution + omega * s + alpha * p;
-
-         r = s - omega * t;
+         ltMatrix.Gg[j] = 0;
       }
 
-      solution = BackSub(matrixLU, solution);
+      for (int j = 0; j < ltMatrix.Di.Length; j++)
+      {
+         ltMatrix.Di[j] = Math.Sqrt(matrix.Di[j]);
+      }
+      
+      int i;
+      
+      Vector r = DirElim(vector - matrix * solution, ltMatrix);
+      Vector z = BackSub(r, ltMatrix);
+      Vector p = DirElim(matrix * z, ltMatrix);
+      
+      double error = r * r;
 
+      for (i = 1; i <= maxIters && error > eps; i++)
+      {
+         var alpha = p * r / (p * p);
+         solution += alpha * z;
+         error = (r * r) - (alpha * alpha * (p * p));
+         r -= alpha * p;
+
+         var tmp = DirElim(matrix * BackSub(r, ltMatrix), ltMatrix);
+
+         var beta = -(p * tmp) / (p * p);
+         z = BackSub(r, ltMatrix) + (beta * z);
+         p = tmp + (beta * p);
+         
+         //Console.WriteLine($"{i}: {error}");
+      }
+
+      //Console.WriteLine($"Iters: {i}\tError: {error}");
       return solution;
    }
 
-   protected static void LU(SparseMatrix Matrix)
+   private void ConvertLT(SparseMatrix _matrix)
    {
-      for (int i = 0; i < Matrix.Size; i++)
+      for (int i = 0; i < _matrix.Size; i++)
       {
-
-         for (int j = Matrix.Ig[i]; j < Matrix.Ig[i + 1]; j++)
+         for (int j = _matrix.Ig[i]; j < _matrix.Ig[i + 1]; j++)
          {
-            int jCol = Matrix.Jg[j];
-            int jk = Matrix.Ig[jCol];
-            int k = Matrix.Ig[i];
-
-            int sdvig = Matrix.Jg[Matrix.Ig[i]] - Matrix.Jg[Matrix.Ig[jCol]];
-
-            if (sdvig > 0)
-               jk += sdvig;
-            else
-               k -= sdvig;
+            int jCol = _matrix.Jg[j];
+            int jk = _matrix.Ig[jCol];
+            int k = _matrix.Ig[i];
 
             double sumL = 0.0;
-            double sumU = 0.0;
 
-            for (; k < j && jk < Matrix.Ig[jCol + 1]; k++, jk++)
+            for (; k < j && jk < _matrix.Ig[jCol + 1]; )
             {
-               sumL += Matrix.Ggl[k] * Matrix.Ggu[jk];
-               sumU += Matrix.Ggu[k] * Matrix.Ggl[jk];
+               if (_matrix.Jg[k] == _matrix.Jg[jk])
+               {
+                  sumL += _matrix.Gg[k] * _matrix.Gg[jk];
+                  k++;
+                  jk++;
+               }
+
+               else
+               {
+                  if (_matrix.Jg[k] > _matrix.Jg[jk])
+                  {
+                     jk++;
+                  }
+
+                  else
+                  {
+                     k++;
+                  }
+               }
             }
 
-            Matrix.Ggl[j] -= sumL;
-            Matrix.Ggu[j] -= sumU;
-            Matrix.Ggu[j] /= Matrix.Di[jCol];
+            _matrix.Gg[j] -= sumL;
+            _matrix.Gg[j] /= _matrix.Di[jCol];
          }
 
          double sumD = 0.0;
-         for (int j = Matrix.Ig[i]; j < Matrix.Ig[i + 1]; j++)
-            sumD += Matrix.Ggl[j] * Matrix.Ggu[j];
+         for (int j = _matrix.Ig[i]; j < _matrix.Ig[i + 1]; j++)
+            sumD += _matrix.Gg[j] * _matrix.Gg[j];
 
-         Matrix.Di[i] -= sumD;
-      }
+         _matrix.Di[i] -= sumD;
+         _matrix.Di[i] = Math.Sqrt(Math.Abs(_matrix.Di[i]));
+      } 
    }
 
-   protected static Vector DirElim(SparseMatrix Matrix, Vector b)
+   private Vector DirElim(Vector vector, SparseMatrix lltMatrix)
    {
-      Vector result = new Vector(b.Length);
-      Vector.Copy(b, result);
+      Vector result = new Vector(vector.Length);
+      Vector.Copy(vector, result);
 
-      for (int i = 0; i < Matrix.Size; i++)
+      for (int i = 0; i < vector.Length; i++)
       {
-         for (int j = Matrix.Ig[i]; j < Matrix.Ig[i + 1]; j++)
+         for (int j = matrix.Ig[i]; j < matrix.Ig[i + 1]; j++)
          {
-            result[i] -= Matrix.Ggl[j] * result[Matrix.Jg[j]];
+            result[i] -= lltMatrix.Gg[j] * result[matrix.Jg[j]];
          }
 
-         result[i] /= Matrix.Di[i];
+         result[i] /= lltMatrix.Di[i];
       }
 
       return result;
    }
 
-   protected static Vector BackSub(SparseMatrix Matrix, Vector b)
+   private Vector BackSub(Vector vector, SparseMatrix lltMatrix)
    {
-      Vector result = new Vector(b.Length);
-      Vector.Copy(b, result);
+      Vector result = new Vector(vector.Length);
+      Vector.Copy(vector, result);
 
-      for (int i = Matrix.Size - 1; i >= 0; i--)
+      for (int i = matrix.Size - 1; i >= 0; i--)
       {
-         for (int j = Matrix.Ig[i + 1] - 1; j >= Matrix.Ig[i]; j--)
+         result[i] /= lltMatrix.Di[i];
+         for (int j = matrix.Ig[i + 1] - 1; j >= matrix.Ig[i]; j--)
          {
-            result[Matrix.Jg[j]] -= Matrix.Ggu[j] * result[i];
+            result[matrix.Jg[j]] -= lltMatrix.Gg[j] * result[i];
          }
       }
+
       return result;
    }
 }
 
-public class LUSolver : SLAE
+public class CGMSolver : SLAE
 {
+   public CGMSolver(double eps, int maxIters) : base(eps, maxIters) { }
+
    public override Vector Solve()
    {
-      solution = new(vector.Length);
-      Vector.Copy(vector, solution);
-      matrix = matrix.ConvertToProfile();
+      double vectorNorm = vector.Norm();
 
-      LU();
-      ForwardElimination();
-      BackwardSubstitution();
+      Vector z = new(vector.Length);
 
+      var r = vector - (matrix * solution);
+
+      Vector.Copy(r, z);
+      int iter = 0;
+      double error = 0;
+
+      for (; iter < maxIters && r.Norm() / vectorNorm >= eps; iter++)
+      {
+         var tmp = matrix * z;
+         var alpha = r * r / (tmp * z);
+         solution += alpha * z;
+         var squareNorm = r * r;
+         r -= alpha * tmp;
+         var beta = r * r / squareNorm;
+         z = r + beta * z;
+         error = r.Norm() / vectorNorm;
+      }
+
+      //Console.WriteLine($"Iters: {iter}\tError: {error}");
       return solution;
    }
 }
 
-public class BCGSTABSolver : SLAE
+public class LOSSolver : SLAE
 {
-   public BCGSTABSolver(double eps, int maxIters) : base(eps, maxIters) { }
+   public LOSSolver(double eps, int maxIters) : base(eps, maxIters) { }
+   
    public override Vector Solve()
    {
-      solution = new(vector.Length);
-
-      double vecNorm = vector.Norm();
-
-      SparseMatrix matrixLU = new(matrix.Size, matrix.Jg.Length);
-      SparseMatrix.Copy(matrix, matrixLU);
-
-      Vector r = new(vector.Length);
-      Vector p = new(vector.Length);
-      Vector s;
-      Vector t;
-      Vector v = new(vector.Length);
-
-      double alpha = 1.0;
-      double beta;
-      double omega = 1.0;
-      double rho = 1.0;
-      double rhoPrev;
-
       int i;
 
-      LU(matrixLU);
+      Vector z = new(vector.Length);
+      Vector r = vector - matrix * solution;
+      Vector.Copy(r, z);
 
-      Vector r0 = vector - matrix * solution;
-      Vector.Copy(r0, r);
+      var p = matrix * z;
+      
+      double error = r * r;
 
-      for (i = 1; i <= maxIters && r.Norm() / vecNorm > eps; i++)
+      for (i = 1; i <= maxIters && error > eps; i++)
       {
-         rhoPrev = rho;
-         rho = (r0 * r);
+         var alpha = p * r / (p * p);
+         solution += alpha * z;
+         error = (r * r) - (alpha * alpha * (p * p));
+         r -= alpha * p;
 
-         beta = rho / rhoPrev * alpha / omega;
+         var tmp = matrix * r;
 
-         p = r + beta * (p - omega * v);
-
-         v = matrix * p;
-
-         alpha = rho / (r0 * v);
-
-         s = r - alpha * v;
-
-         t = matrix * s;
-
-         omega = (t * s) / (t * t);
-
-         solution = solution + omega * s + alpha * p;
-
-         r = s - omega * t;
+         var beta = -(p * tmp) / (p * p);
+         z = r + (beta * z);
+         p = tmp + (beta * p);
       }
 
       return solution;
-   }
-
-   protected static void LU(SparseMatrix Matrix)
-   {
-      for (int i = 0; i < Matrix.Size; i++)
-      {
-
-         for (int j = Matrix.Ig[i]; j < Matrix.Ig[i + 1]; j++)
-         {
-            int jCol = Matrix.Jg[j];
-            int jk = Matrix.Ig[jCol];
-            int k = Matrix.Ig[i];
-
-            int sdvig = Matrix.Jg[Matrix.Ig[i]] - Matrix.Jg[Matrix.Ig[jCol]];
-
-            if (sdvig > 0)
-               jk += sdvig;
-            else
-               k -= sdvig;
-
-            double sumL = 0.0;
-            double sumU = 0.0;
-
-            for (; k < j && jk < Matrix.Ig[jCol + 1]; k++, jk++)
-            {
-               sumL += Matrix.Ggl[k] * Matrix.Ggu[jk];
-               sumU += Matrix.Ggu[k] * Matrix.Ggl[jk];
-            }
-
-            Matrix.Ggl[j] -= sumL;
-            Matrix.Ggu[j] -= sumU;
-            Matrix.Ggu[j] /= Matrix.Di[jCol];
-         }
-
-         double sumD = 0.0;
-         for (int j = Matrix.Ig[i]; j < Matrix.Ig[i + 1]; j++)
-            sumD += Matrix.Ggl[j] * Matrix.Ggu[j];
-
-         Matrix.Di[i] -= sumD;
-      }
-   }
-
-   protected static Vector DirElim(SparseMatrix Matrix, Vector b)
-   {
-      Vector result = new Vector(b.Length);
-      Vector.Copy(b, result);
-
-      for (int i = 0; i < Matrix.Size; i++)
-      {
-         for (int j = Matrix.Ig[i]; j < Matrix.Ig[i + 1]; j++)
-         {
-            result[i] -= Matrix.Ggl[j] * result[Matrix.Jg[j]];
-         }
-
-         result[i] /= Matrix.Di[i];
-      }
-
-      return result;
-   }
-
-   protected static Vector BackSub(SparseMatrix Matrix, Vector b)
-   {
-      Vector result = new Vector(b.Length);
-      Vector.Copy(b, result);
-
-      for (int i = Matrix.Size - 1; i >= 0; i--)
-      {
-         for (int j = Matrix.Ig[i + 1] - 1; j >= Matrix.Ig[i]; j--)
-         {
-            result[Matrix.Jg[j]] -= Matrix.Ggu[j] * result[i];
-         }
-      }
-      return result;
    }
 }

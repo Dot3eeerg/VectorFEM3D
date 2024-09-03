@@ -114,6 +114,16 @@ public class LOSLTSolver : SLAE
       SparseMatrix.Copy(matrix, ltMatrix);
       
       ConvertLT(ltMatrix);
+
+      for (int j = 0; j < ltMatrix.Gg.Length; j++)
+      {
+         ltMatrix.Gg[j] = 0;
+      }
+
+      for (int j = 0; j < ltMatrix.Di.Length; j++)
+      {
+         ltMatrix.Di[j] = Math.Sqrt(matrix.Di[j]);
+      }
       
       int i;
       
@@ -139,7 +149,7 @@ public class LOSLTSolver : SLAE
          //Console.WriteLine($"{i}: {error}");
       }
 
-      Console.WriteLine($"Iters: {i}\tError: {error}");
+      //Console.WriteLine($"Iters: {i}\tError: {error}");
       return solution;
    }
 
@@ -224,5 +234,72 @@ public class LOSLTSolver : SLAE
       }
 
       return result;
+   }
+}
+
+public class CGMSolver : SLAE
+{
+   public CGMSolver(double eps, int maxIters) : base(eps, maxIters) { }
+
+   public override Vector Solve()
+   {
+      double vectorNorm = vector.Norm();
+
+      Vector z = new(vector.Length);
+
+      var r = vector - (matrix * solution);
+
+      Vector.Copy(r, z);
+      int iter = 0;
+      double error = 0;
+
+      for (; iter < maxIters && r.Norm() / vectorNorm >= eps; iter++)
+      {
+         var tmp = matrix * z;
+         var alpha = r * r / (tmp * z);
+         solution += alpha * z;
+         var squareNorm = r * r;
+         r -= alpha * tmp;
+         var beta = r * r / squareNorm;
+         z = r + beta * z;
+         error = r.Norm() / vectorNorm;
+      }
+
+      //Console.WriteLine($"Iters: {iter}\tError: {error}");
+      return solution;
+   }
+}
+
+public class LOSSolver : SLAE
+{
+   public LOSSolver(double eps, int maxIters) : base(eps, maxIters) { }
+   
+   public override Vector Solve()
+   {
+      int i;
+
+      Vector z = new(vector.Length);
+      Vector r = vector - matrix * solution;
+      Vector.Copy(r, z);
+
+      var p = matrix * z;
+      
+      double error = r * r;
+
+      for (i = 1; i <= maxIters && error > eps; i++)
+      {
+         var alpha = p * r / (p * p);
+         solution += alpha * z;
+         error = (r * r) - (alpha * alpha * (p * p));
+         r -= alpha * p;
+
+         var tmp = matrix * r;
+
+         var beta = -(p * tmp) / (p * p);
+         z = r + (beta * z);
+         p = tmp + (beta * p);
+      }
+
+      return solution;
    }
 }

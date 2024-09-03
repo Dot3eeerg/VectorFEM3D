@@ -158,36 +158,36 @@ public record ElementAssembler
 
         for (int i = 0; i < _basis.Size; i++)
         {
-            Func<Point3D, double> kek;
-            Vector3D psi1 = new(0, 0, 0);
-            Vector3D func = new(0, 0, 0);
+            //Func<Point3D, double> kek;
+            //Vector3D psi1 = new(0, 0, 0);
+            //Vector3D func = new(0, 0, 0);
 
-            var ik = i;
-            kek = point =>
-            {
-                psi1.Copy(_basis.GetPsi(ik, point));
-                switch (ik / 4)
-                {
-                    case 0:
-                        func.UpdateVector(f(Element.PointList[ik], time, ik, Element.Sigma), 0, 0);
-                        break;
+            //var ik = i;
+            //kek = point =>
+            //{
+            //    psi1.Copy(_basis.GetPsi(ik, point));
+            //    switch (ik / 4)
+            //    {
+            //        case 0:
+            //            func.UpdateVector(f(Element.PointList[ik], time, ik, Element.Sigma), 0, 0);
+            //            break;
 
-                    case 1:
-                        func.UpdateVector(0, f(Element.PointList[ik], time, ik, Element.Sigma), 0);
-                        break;
+            //        case 1:
+            //            func.UpdateVector(0, f(Element.PointList[ik], time, ik, Element.Sigma), 0);
+            //            break;
 
-                    case 2:
-                        func.UpdateVector(0, 0, f(Element.PointList[ik], time, ik, Element.Sigma));
-                        break;
-                }
+            //        case 2:
+            //            func.UpdateVector(0, 0, f(Element.PointList[ik], time, ik, Element.Sigma));
+            //            break;
+            //    }
 
-                return func * psi1;
-            };
-            LocalVector[i] = Element.hx * Element.hy * Element.hz * _integration.Gauss3D(kek);
+            //    return func * psi1;
+            //};
+            //LocalVector[i] = Element.hx * Element.hy * Element.hz * _integration.Gauss3D(kek);
             
-            //LocalVector[i] = f(Element.PointList[i], time, i, Element.Sigma);
+            LocalVector[i] = f(Element.PointList[i], time, i, Element.Sigma);
         }
 
-        //LocalVector = MassMatrix * LocalVector;
+        LocalVector = MassMatrix * LocalVector;
     }
 }

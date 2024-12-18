@@ -25,16 +25,16 @@ public abstract class Test
         {
             0 => FValue(point, t, 0, sigma),
             1 => FValue(point, t, 0, sigma),
-            2 => FValue(point, t, 1, sigma),
-            3 => FValue(point, t, 1, sigma),
-            4 => FValue(point, t, 2, sigma),
-            5 => FValue(point, t, 2, sigma),
-            6 => FValue(point, t, 2, sigma),
-            7 => FValue(point, t, 2, sigma),
-            8 => FValue(point, t, 0, sigma),
-            9 => FValue(point, t, 0, sigma),
-            10 => FValue(point, t, 1, sigma),
-            11 => FValue(point, t, 1, sigma),
+            2 => FValue(point, t, 0, sigma),
+            3 => FValue(point, t, 0, sigma),
+            4 => FValue(point, t, 1, sigma),
+            5 => FValue(point, t, 1, sigma),
+            6 => FValue(point, t, 1, sigma),
+            7 => FValue(point, t, 1, sigma),
+            8 => FValue(point, t, 2, sigma),
+            9 => FValue(point, t, 2, sigma),
+            10 => FValue(point, t, 2, sigma),
+            11 => FValue(point, t, 2, sigma),
         };
 }
 
@@ -45,18 +45,24 @@ public class Test1 : Test
     public override double UValue(Point3D point, double t, int i)
         => i switch
         {
-            0 => point.Y * point.Y + t,
-            1 => point.X + t,
-            2 => point.Z + t,
+            //0 => point.Y * point.Y + t,
+            //1 => point.X + t,
+            //2 => point.X + t,
+            0 => 0,
+            1 => 0,
+            2 => 0,
             _ => throw new Exception("Can't find UValue type")
         };
 
     protected override double FValue(Point3D point, double t, int i, double sigma)
         => i switch
         {
-            0 => -2 / mu + sigma * 1,
-            1 => sigma * 1,
-            2 => sigma * 1,
+            //0 => -2 / mu + sigma * 1,
+            //1 => sigma * 1,
+            //2 => sigma * 1,
+            0 => 0,
+            1 => 0,
+            2 => 0,
             _ => throw new Exception("Can't find FValue type")
         };
 
@@ -89,18 +95,21 @@ public class Test2 : Test
     public override double UValue(Point3D point, double t, int i)
         => i switch
         {
-            0 => t * t,
-            1 => 0,
-            2 => 0,
+            0 => Math.Sin(point.Y + point.Z),
+            1 => Math.Sin(point.X + point.Z),
+            2 => Math.Sin(point.X + point.Y),
             _ => throw new Exception("Can't find UValue type")
         };
 
     protected override double FValue(Point3D point, double t, int i, double sigma)
         => i switch
         {
-            0 => 2 * t,
-            1 => 0,
-            2 => 0,
+            //0 => -2 + 0 * sigma,
+            //1 => -2 + 0 * sigma,
+            //2 => -2 + 0 * sigma,
+            0 => 2 * Math.Sin(point.Y + point.Z),
+            1 => 2 * Math.Sin(point.X + point.Z),
+            2 => 2 * Math.Sin(point.X + point.Y),
             _ => throw new Exception("Can't find FValue type")
         };
 
@@ -133,18 +142,18 @@ public class Test3 : Test
     public override double UValue(Point3D point, double t, int i)
         => i switch
         {
-            0 => t * t,
-            1 => t,
-            2 => t * t * t * t,
+            0 => t * t * 1,
+            1 => t * t * 1,
+            2 => t * t * 1,
             _ => throw new Exception("Can't find UValue type")
         };
 
     protected override double FValue(Point3D point, double t, int i, double sigma)
         => i switch
         {
-            0 => 2 * t * sigma + 2 * epsilon,
-            1 => 1 * sigma,
-            2 => 4 * t * t * t * sigma + 12 * t * t * epsilon,
+            0 => 2 * t * 1 * sigma,
+            1 => 2 * t * 1 * sigma,
+            2 => 2 * t * 1 * sigma,
             _ => throw new Exception("Can't find FValue type")
         };
 

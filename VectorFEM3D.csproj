@@ -19,8 +19,39 @@
     <None Update="TimeGridParameters">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="time_s.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Remove="Tests\1.csv" />
+    <None Remove="Tests\Ax25.txt" />
+    <None Remove="Tests\1Ax25.txt" />
+    <None Remove="Tests\1Bz-25.txt" />
+    <None Remove="Tests\1Ax-25.txt" />
+    <None Remove="Tests\1Ay-25.txt" />
+    <None Remove="Tests\Bz0.txt" />
+    <None Remove="Tests\1Ay25.txt" />
+    <None Remove="Tests\1Ay0.txt" />
+    <None Remove="Tests\5.csv" />
+    <None Remove="Tests\Ay0.txt" />
+    <None Remove="Tests\1Bz25.txt" />
+    <None Remove="Tests\3.csv" />
+    <None Remove="Tests\Ay25.txt" />
+    <None Remove="Tests\Ax0.txt" />
+    <None Remove="Tests\Bz25.txt" />
+    <None Remove="Tests\Ay-25.txt" />
+    <None Remove="Tests\4.csv" />
+    <None Remove="Tests\Bz-25.txt" />
+    <None Remove="Tests\1Bz0.txt" />
+    <None Remove="Tests\1Ax0.txt" />
+    <None Remove="Tests\2.csv" />
+    <None Remove="Tests\Ax-25.txt" />
+    <None Update="Tests\Fourth\EMFresultsLayer1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Tests\" />
+    <Folder Include="Tests\Diploma\" />
+    <Folder Include="Tests\Graphs\" />
+    <Folder Include="Tests\Zero\" />
   </ItemGroup>
 </Project>
